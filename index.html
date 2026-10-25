@@ -25,7 +25,7 @@
                     <span class="text-xl font-bold overlap-theme-text tracking-tight">OVERLAP</span>
                 </div>
                 <h1 class="text-lg font-bold text-gray-800">Planeador de Ocupación</h1>
-                <p class="text-xs text-gray-500 mt-1">Conectado a la Nube U-Claro (Fila 100)</p>
+                <p class="text-xs text-gray-500 mt-1">Conectado a la Nube U-Claro</p>
             </div>
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
@@ -253,6 +253,42 @@
             "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02", 
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
+
+        // Función auxiliar para limpiar y formatear fechas a DD/MM/AAAA
+        function formatDateClean(dateStr) {
+            if (!dateStr) return "";
+            let cleanStr = String(dateStr).split('T')[0]; // Remueve marcas de tiempo ISO si las trae
+            let parts = cleanStr.split('-');
+            if (parts.length === 3) {
+                // Si viene en AAAA-MM-DD
+                if (parts[0].length === 4) {
+                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+                }
+            }
+            return cleanStr;
+        }
+
+        // Función auxiliar para limpiar y extraer solo HH:MM de horas que vengan con formato de Excel
+        function formatTimeClean(timeStr) {
+            if (!timeStr) return "";
+            let str = String(timeStr);
+            if (str.includes('T')) {
+                // Extrae la parte de la hora de cadenas ISO como 1899-12-30T19:26:16.000Z
+                let timePart = str.split('T')[1];
+                if (timePart) {
+                    let hm = timePart.split(':');
+                    if (hm.length >= 2) {
+                        return `${hm[0]}:${hm[1]}`;
+                    }
+                }
+            }
+            // Si ya viene tipo "08:30" o "8:30:00"
+            let parts = str.split(':');
+            if (parts.length >= 2) {
+                return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
+            }
+            return str;
+        }
 
         async function loadCloudDatabase() {
             try {
@@ -702,7 +738,8 @@
         }
 
         function getWeekOfMonth(dateString) {
-            const date = new Date(dateString + 'T00:00:00');
+            const cleanD = String(dateString).split('T')[0];
+            const date = new Date(cleanD + 'T00:00:00');
             const day = date.getDate();
             return Math.ceil(day / 7);
         }
@@ -745,11 +782,15 @@
             Object.keys(weeksMap).sort().forEach(weekNum => {
                 let rowsHtml = '';
                 weeksMap[weekNum].forEach(t => {
+                    const cleanDate = formatDateClean(t.fecha);
+                    const cleanStart = formatTimeClean(t.horaInicio);
+                    const cleanEnd = formatTimeClean(t.horaFin);
+
                     rowsHtml += `
                         <tr class="hover:bg-gray-50">
                             <td class="p-3 border-b"><span class="px-2 py-1 text-xs rounded font-semibold ${t.estado === 'Ejecutado' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'}">${t.estado}</span></td>
-                            <td class="p-3 border-b">${t.fecha}</td>
-                            <td class="p-3 border-b">${t.horaInicio} - ${t.horaFin} (${t.totalHoras} hrs)</td>
+                            <td class="p-3 border-b">${cleanDate}</td>
+                            <td class="p-3 border-b">${cleanStart} - ${cleanEnd} (${t.totalHoras} hrs)</td>
                             <td class="p-3 border-b">${t.categoria}</td>
                             <td class="p-3 border-b">${t.subcategoria}</td>
                             <td class="p-3 border-b">${t.actividad}</td>
@@ -775,7 +816,7 @@
                                 <thead>
                                     <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
                                         <th class="p-3 border-b">Estado</th>
-                                        <th class="p-3 border-b">Fecha</th>
+                                        <th class="p-3 border-b">Fecha (DD/MM/AAAA)</th>
                                         <th class="p-3 border-b">Horario / Horas</th>
                                         <th class="p-3 border-b">Categoría</th>
                                         <th class="p-3 border-b">Subcategoría</th>
@@ -796,7 +837,7 @@
         function updateProgressView() {
             const businessDaysTarget = countBusinessDaysUntilNow();
             const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
-            const uniqueDatesWorked = [...new Set(myTasks.map(t => t.fecha))];
+            const uniqueDatesWorked = [...new Set(myTasks.map(t => formatDateClean(t.fecha)))];
             const uniqueDaysCount = uniqueDatesWorked.length;
 
             document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
@@ -847,13 +888,14 @@
             trainers.forEach(cedula => {
                 const p = dbPersonas[cedula];
                 const pTasks = userTasks.filter(t => t.nombre === p.nombre);
-                const uniqueDays = [...new Set(pTasks.map(t => t.fecha))].length;
+                const uniqueDays = [...new Set(pTasks.map(t => formatDateClean(t.fecha)))].length;
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
 
                 const dailyHoursMap = {};
                 pTasks.forEach(t => {
-                    if (!dailyHoursMap[t.fecha]) dailyHoursMap[t.fecha] = 0;
-                    dailyHoursMap[t.fecha] += parseFloat(t.totalHoras);
+                    const cleanD = formatDateClean(t.fecha);
+                    if (!dailyHoursMap[cleanD]) dailyHoursMap[cleanD] = 0;
+                    dailyHoursMap[cleanD] += parseFloat(t.totalHoras);
 
                     if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") {
                         totalAdminReunionesCount++;

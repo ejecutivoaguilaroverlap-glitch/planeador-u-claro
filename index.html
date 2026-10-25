@@ -123,8 +123,8 @@
                     <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Días Hábiles Lunes a Viernes)</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
-                            <p class="text-xs overlap-theme-text font-semibold uppercase">Porcentaje de Cumplimiento</p>
-                            <p id="stat-percentage" class="text-3xl font-black overlap-theme-text mt-2">0%</p>
+                            <p class="text-xs text-gray-600 font-semibold uppercase">Porcentaje de Cumplimiento</p>
+                            <p id="stat-percentage" class="text-3xl font-black mt-2">0%</p>
                         </div>
                         <div class="bg-gray-50 p-4 rounded-lg border">
                             <p class="text-xs text-gray-500 font-semibold uppercase">Días Únicos Diligenciados / Hábiles del Mes</p>
@@ -254,6 +254,13 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
+        // Función para asignar color según el rango de cumplimiento
+        function getComplianceColorClass(val) {
+            if (val <= 70) return "text-red-500 font-black";
+            if (val <= 89) return "text-amber-500 font-black";
+            return "text-emerald-500 font-black";
+        }
+
         // Función para limpiar fechas a DD/MM/AAAA
         function formatDateClean(dateStr) {
             if (!dateStr) return "";
@@ -289,14 +296,12 @@
                 const data = await response.json();
                 
                 if (data.status === "success") {
-                    // Mapear Base_Personas con definición de roles (admin vs entrenador)
                     dbPersonas = {};
                     if (data.personas && data.personas.length > 1) {
                         for (let i = 1; i < data.personas.length; i++) {
                             const row = data.personas[i];
                             if (row[0] !== undefined && row[0] !== "") {
                                 let rawRol = String(row[2] || "").trim().toLowerCase();
-                                // Si en la columna el rol es "admin", lo dejamos como "Admin", de lo contrario "Entrenador"
                                 let rolDefinitivo = (rawRol === "admin" || rawRol === "administrador") ? "Admin" : (row[2] || "Entrenador");
 
                                 dbPersonas[String(row[0]).trim()] = {
@@ -311,7 +316,6 @@
                         }
                     }
 
-                    // Mapear Listas de forma vertical heredando valores previos vacíos
                     dbListas = {};
                     const cats = data.categorias || [];
                     const subs = data.subcategorias || [];
@@ -341,7 +345,6 @@
 
                     populateCategorySelect();
 
-                    // Mapear Registros existentes
                     userTasks = [];
                     if (data.registros && data.registros.length > 1) {
                         for (let i = 1; i < data.registros.length; i++) {
@@ -440,7 +443,6 @@
 
                 const nav = document.getElementById('main-nav');
 
-                // Validación estricta de Rol Admin vs Entrenador
                 if (currentUser.rol === "Admin") {
                     nav.innerHTML = `
                         <button onclick="switchAdminTab('dashboard')" id="nav-admin" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Panel Gerencial (Modo Oscuro)</button>
@@ -728,7 +730,6 @@
             return Math.ceil(day / 7);
         }
 
-        // Conteo automático de días hábiles (Lunes a Viernes) desde el día 1 hasta hoy del mes en curso
         function countBusinessDaysUntilNow() {
             const year = liveServerDate.getFullYear();
             const month = liveServerDate.getMonth();
@@ -737,7 +738,7 @@
 
             for (let d = 1; d <= todayDate; d++) {
                 const tempDate = new Date(year, month, d);
-                const dayOfWeek = tempDate.getDay(); // 0 = Domingo, 6 = Sábado
+                const dayOfWeek = tempDate.getDay();
                 if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                     count++;
                 }
@@ -823,7 +824,6 @@
             const businessDaysTarget = countBusinessDaysUntilNow();
             const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
             
-            // Filtrar solo días únicos diligenciados que correspondan al mes y año actual
             const currentMonthIndex = liveServerDate.getMonth();
             const currentYearNum = liveServerDate.getFullYear();
 
@@ -842,8 +842,13 @@
             const uniqueDaysCount = uniqueDatesWorked.length;
 
             document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
+            
             const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDaysCount / businessDaysTarget) * 100)) : 0;
-            document.getElementById('stat-percentage').innerText = compliance + '%';
+            
+            // Aplicar rango de colores dinámico en Fase 1.2
+            const statPercentageEl = document.getElementById('stat-percentage');
+            statPercentageEl.innerText = compliance + '%';
+            statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
 
             const weeklyHoursMap = {};
             myTasks.forEach(t => {
@@ -880,7 +885,6 @@
             const rankingBody = document.getElementById('admin-ranking-body');
             rankingBody.innerHTML = '';
 
-            // Solo mostrar entrenadores en el ranking (excluyendo administradores)
             const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
             let teamStats = [];
 
@@ -947,12 +951,15 @@
             teamStats.sort((a, b) => b.compliance - a.compliance);
 
             teamStats.forEach((st, idx) => {
+                // Asignar color dinámico en el ranking según rangos (0-70 rojo, 71-89 amarillo, 90-100 verde)
+                const colorClass = getComplianceColorClass(st.compliance);
+
                 rankingBody.innerHTML += `
                     <tr class="hover:bg-slate-800/50 transition">
                         <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
                         <td class="p-3 border-b border-slate-800 font-medium text-white">${st.nombre}</td>
                         <td class="p-3 border-b border-slate-800">${st.uniqueDays} días</td>
-                        <td class="p-3 border-b border-slate-800 font-black overlap-theme-text">${st.compliance}%</td>
+                        <td class="p-3 border-b border-slate-800 ${colorClass}">${st.compliance}%</td>
                         <td class="p-3 border-b border-slate-800">
                             ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso > 42h/día</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
                         </td>

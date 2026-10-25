@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claro & Overlap · Planeador de Ocupación</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; }
+        .overlap-theme-bg { background-color: #00A9CE; }
+        .overlap-theme-text { color: #00A9CE; }
+        .overlap-theme-border { border-color: #00A9CE; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- ================= 1.1 VISTA DE LOGUEO ================= -->
+    <div id="view-login" class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 overlap-theme-border">
+            <div class="text-center mb-6">
+                <div class="flex justify-center items-center space-x-2 mb-2">
+                    <span class="text-2xl font-black tracking-wider text-gray-800">Claro</span>
+                    <span class="text-gray-300">|</span>
+                    <span class="text-xl font-bold overlap-theme-text tracking-tight">OVERLAP</span>
+                </div>
+                <h1 class="text-lg font-bold text-gray-800">Planeador de Ocupación</h1>
+                <p class="text-xs text-gray-500 mt-1">Conectado a la Nube U-Claro</p>
+            </div>
+            <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Usuario (Cédula)</label>
+                    <input type="text" id="login-user" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00A9CE] focus:outline-none" placeholder="Ingresa tu cédula">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Contraseña (Cédula)</label>
+                    <input type="password" id="login-pass" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#00A9CE] focus:outline-none" placeholder="••••">
+                </div>
+                <button type="submit" class="w-full overlap-theme-bg text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition duration-200 shadow-md">
+                    Iniciar Sesión
+                </button>
+                <div id="login-error" class="text-red-500 text-xs text-center hidden">Cédula no registrada o incorrecta.</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= CONTENEDOR PRINCIPAL (POST-LOGIN) ================= -->
+    <div id="main-app" class="hidden flex-grow flex flex-col">
+        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="flex items-center space-x-2">
+                    <span class="text-xl font-black text-gray-800">Claro</span>
+                    <span class="text-gray-300">|</span>
+                    <span class="text-base font-bold overlap-theme-text">OVERLAP</span>
+                </div>
+                <span class="text-xs font-semibold text-gray-600 border-l pl-3 hidden sm:inline">Universidad Claro - Planificador EE OVERLAP</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span id="user-display-name" class="text-sm font-medium text-gray-800"></span>
+                <button onclick="handleLogout()" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md font-semibold transition">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6">
+            <!-- Dinámico por rol -->
+        </nav>
+
+        <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
+
+            <!-- ================= VISTA ADMINISTRADOR MODO OSCURO (EXCLUSIVA ADMIN) ================= -->
+            <div id="view-admin-dashboard" class="hidden space-y-6">
+                <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-white mb-1">Panel Gerencial · Modo Oscuro Ejecutivo</h2>
+                            <p class="text-xs text-slate-400">Monitoreo exclusivo administrativo, ranking, alertas por alto uso y analítica del equipo.</p>
+                        </div>
+                        <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Perfil Administrativo</span>
+                    </div>
+
+                    <div id="admin-admin-alert-container" class="mb-6 hidden"></div>
+                    
+                    <div class="mb-8">
+                        <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center space-x-2">
+                            <span>🏆 Ranking de Cumplimiento (Mayor a Menor)</span>
+                        </h3>
+                        <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase font-mono">
+                                        <th class="p-3 border-b border-slate-700">Posición</th>
+                                        <th class="p-3 border-b border-slate-700">Ejecutivo</th>
+                                        <th class="p-3 border-b border-slate-700">Días Diligenciados</th>
+                                        <th class="p-3 border-b border-slate-700">Cumplimiento</th>
+                                        <th class="p-3 border-b border-slate-700">Alerta Horas Diario (> 42h)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-ranking-body" class="divide-y divide-slate-800 text-slate-300"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-slate-800/60 p-4 rounded-lg border border-slate-700/60">
+                            <h4 class="font-bold text-xs text-cyan-400 uppercase tracking-wide mb-3">🔥 Top 5 Categorías</h4>
+                            <ul id="top-categories" class="space-y-2 text-xs text-slate-300"></ul>
+                        </div>
+                        <div class="bg-slate-800/60 p-4 rounded-lg border border-slate-700/60">
+                            <h4 class="font-bold text-xs text-cyan-400 uppercase tracking-wide mb-3">🔥 Top 5 Subcategorías</h4>
+                            <ul id="top-subcategories" class="space-y-2 text-xs text-slate-300"></ul>
+                        </div>
+                        <div class="bg-slate-800/60 p-4 rounded-lg border border-slate-700/60">
+                            <h4 class="font-bold text-xs text-cyan-400 uppercase tracking-wide mb-3">🔥 Top 5 Actividades</h4>
+                            <ul id="top-activities" class="space-y-2 text-xs text-slate-300"></ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= VISTAS ENTRENADOR (FASE 1) ================= -->
+            <div id="tab-progress" class="space-y-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Días Hábiles Lunes a Viernes)</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
+                            <p class="text-xs overlap-theme-text font-semibold uppercase">Porcentaje de Cumplimiento</p>
+                            <p id="stat-percentage" class="text-3xl font-black overlap-theme-text mt-2">0%</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border">
+                            <p class="text-xs text-gray-500 font-semibold uppercase">Días Únicos Diligenciados / Hábiles</p>
+                            <p id="stat-days" class="text-3xl font-black text-gray-800 mt-2">0 / 0</p>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg border">
+                            <p class="text-xs text-gray-500 font-semibold uppercase">Horas por Semana (Alerta > 42h)</p>
+                            <div id="stat-weekly-hours" class="mt-2 space-y-1 text-sm font-bold text-gray-800"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-tasks" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-gray-800">Historial de Actividades por Semana</h2>
+                    <span id="current-device-date" class="text-xs text-gray-500"></span>
+                </div>
+                <div id="weeks-container" class="space-y-6"></div>
+            </div>
+
+            <div id="tab-form" class="hidden space-y-6 max-w-3xl mx-auto">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
+                    <h2 id="form-title" class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Actividad Diaria</h2>
+                    <form id="activity-form" onsubmit="saveActivity(event)" class="space-y-4">
+                        <input type="hidden" id="edit-index" value="-1">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
+                                <select id="form-estado" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                                    <option value="Ejecutado">Ejecutado</option>
+                                    <option value="Planeado">Planeado</option>
+                                    <option value="Reprogramado">Reprogramado</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha</label>
+                                <input type="date" id="form-fecha" required onchange="checkDateAndAutofill()" class="w-full px-3 py-2 border rounded-lg text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border text-xs text-gray-600">
+                            <div><strong>Mes:</strong> <span id="auto-mes">-</span></div>
+                            <div><strong>Año:</strong> <span id="auto-anio">-</span></div>
+                            <div><strong>Día:</strong> <span id="auto-dia">-</span></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Nombre (Master / Entrenador)</label>
+                            <input type="text" id="form-nombre" readonly class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100 text-gray-700 cursor-not-allowed">
+                        </div>
+
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-3 rounded-lg border text-xs text-gray-600">
+                            <div><strong>Rol:</strong> <span id="auto-rol">-</span></div>
+                            <div><strong>Región:</strong> <span id="auto-region">-</span></div>
+                            <div><strong>Ciudad:</strong> <span id="auto-ciudad">-</span></div>
+                            <div><strong>Canal:</strong> <span id="auto-canal">-</span></div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Categoría</label>
+                                <select id="form-categoria" required onchange="handleCategoryChange()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                                    <option value="">Seleccione...</option>
+                                    <option value="Despligues Formativos">Despligues Formativos</option>
+                                    <option value="Apalancador Indicador">Apalancador Indicador</option>
+                                    <option value="Administrativo">Administrativo</option>
+                                    <option value="Ausencias y Permisos Laborales">Ausencias y Permisos Laborales</option>
+                                    <option value="Desplazamiento">Desplazamiento</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Subcategoría</label>
+                                <select id="form-subcategoria" required onchange="handleSubcategoryChange()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                                    <option value="">Seleccione categoría primero...</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Actividad / Proceso Formativo</label>
+                                <select id="form-actividad" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                                    <option value="">Seleccione subcategoría primero...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="hours-container">
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label>
+                                <select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label>
+                                <select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                                    <option value="">Seleccione hora inicio primero...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Observaciones</label>
+                            <textarea id="form-observaciones" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Notas adicionales..."></textarea>
+                        </div>
+
+                        <div class="flex space-x-3">
+                            <button type="submit" class="flex-grow overlap-theme-bg text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition duration-200 shadow-md">
+                                Guardar / Actualizar Registro
+                            </button>
+                            <button type="button" onclick="resetFormToNew()" class="bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg font-semibold hover:bg-gray-300 transition">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbxD1zYPpEh9EZWOGHqAMf5ZayVeWVmqwZ-vr5e9_1L3zodlhQKpVQwTANcg9_wYnlZQXg/exec";
+
+        let dbPersonas = {};
+        let dbListas = {};
+        let userTasks = [];
+        let currentUser = null;
+        let liveServerDate = new Date();
+
+        document.getElementById('current-device-date').innerText = `Sincronizado: ${liveServerDate.toLocaleString()}`;
+
+        const festivosColombia2026 = [
+            "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03", 
+            "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29", 
+            "2026-07-20", "2026-08-07", "2026-08-17", "2026-10-12", "2026-11-02", 
+            "2026-11-16", "2026-12-08", "2026-12-25"
+        ];
+
+        // Cargar datos reales desde Google Sheets al iniciar
+        async function loadCloudDatabase() {
+            try {
+                const response = await fetch(`${API_URL}?action=getDatabase`);
+                const data = await response.json();
+                
+                if (data.status === "success") {
+                    // Mapear Base_Personas exacto según tu imagen (Col A: Cedula, Col B: Nombre, Col C: Rol, Col D: Region, Col E: Ciudad, Col F: Canal)
+                    dbPersonas = {};
+                    if (data.personas && data.personas.length > 1) {
+                        for (let i = 1; i < data.personas.length; i++) {
+                            const row = data.personas[i];
+                            if (row[0] !== undefined && row[0] !== "") {
+                                dbPersonas[String(row[0]).trim()] = {
+                                    cedula: String(row[0]).trim(),
+                                    nombre: row[1] || "",
+                                    rol: row[2] || "",
+                                    region: row[3] || "",
+                                    ciudad: row[4] || "",
+                                    canal: row[5] || ""
+                                };
+                            }
+                        }
+                    }
+
+                    // Mapear Listas (Columna A: Categoria, B: Subcategoria, C: Actividad)
+                    dbListas = {};
+                    if (data.listas && data.listas.length > 1) {
+                        for (let i = 1; i < data.listas.length; i++) {
+                            const row = data.listas[i];
+                            const cat = row[0];
+                            const sub = row[1];
+                            const act = row[2];
+                            if (cat && sub && act) {
+                                if (!dbListas[cat]) dbListas[cat] = {};
+                                if (!dbListas[cat][sub]) dbListas[cat][sub] = [];
+                                if (!dbListas[cat][sub].includes(act)) dbListas[cat][sub].push(act);
+                            }
+                        }
+                    }
+
+                    // Mapear Registros existentes
+                    userTasks = [];
+                    if (data.registros && data.registros.length > 1) {
+                        for (let i = 1; i < data.registros.length; i++) {
+                            const r = data.registros[i];
+                            if (r[2]) { // Si tiene fecha
+                                userTasks.push({
+                                    estado: r[0],
+                                    codRef: r[1],
+                                    fecha: r[2],
+                                    mes: r[3],
+                                    anio: r[4],
+                                    dia: r[5],
+                                    nombre: r[6],
+                                    rol: r[7],
+                                    region: r[8],
+                                    ciudad: r[9],
+                                    canal: r[10],
+                                    categoria: r[11],
+                                    subcategoria: r[12],
+                                    actividad: r[13],
+                                    horaInicio: r[14],
+                                    horaFin: r[15],
+                                    totalHoras: r[16],
+                                    observaciones: r[17],
+                                    userCedula: r[6]
+                                });
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Error cargando base de datos de la nube:", err);
+            }
+        }
+        
+        loadCloudDatabase();
+
+        function populateStartHours() {
+            const select = document.getElementById('form-horainicio');
+            if (!select) return;
+            select.innerHTML = '<option value="">Seleccione hora...</option>';
+            for (let h = 6; h <= 17; h++) {
+                for (let m of [0, 30]) {
+                    const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                    select.innerHTML += `<option value="${timeStr}">${timeStr}</option>`;
+                }
+            }
+        }
+        populateStartHours();
+
+        function filterEndHours() {
+            const startVal = document.getElementById('form-horainicio').value;
+            const endSelect = document.getElementById('form-horafin');
+            if (!endSelect) return;
+            endSelect.innerHTML = '<option value="">Seleccione hora fin...</option>';
+            if (!startVal) return;
+
+            const [sh, sm] = startVal.split(':').map(Number);
+            const startTotalMinutes = sh * 60 + sm;
+
+            for (let h = 6; h <= 18; h++) {
+                for (let m of [0, 30]) {
+                    if (h === 18 && m > 0) break;
+                    const currentTotalMinutes = h * 60 + m;
+                    if (currentTotalMinutes > startTotalMinutes) {
+                        const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+                        endSelect.innerHTML += `<option value="${timeStr}">${timeStr}</option>`;
+                    }
+                }
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value.trim();
+
+            await loadCloudDatabase(); // Refrescar datos desde Google Sheets
+
+            if (user === pass && dbPersonas[user]) {
+                currentUser = dbPersonas[user];
+                currentUser.cedula = user;
+                document.getElementById('view-login').classList.add('hidden');
+                document.getElementById('main-app').classList.remove('hidden');
+                document.getElementById('user-display-name').innerText = currentUser.nombre;
+
+                const nav = document.getElementById('main-nav');
+
+                if (currentUser.rol === "Admin" || currentUser.rol === "Administrador") {
+                    nav.innerHTML = `
+                        <button onclick="switchAdminTab('dashboard')" id="nav-admin" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Panel Gerencial (Modo Oscuro)</button>
+                    `;
+                    document.getElementById('tab-progress').classList.add('hidden');
+                    document.getElementById('tab-tasks').classList.add('hidden');
+                    document.getElementById('tab-form').classList.add('hidden');
+                    document.getElementById('view-admin-dashboard').classList.remove('hidden');
+                    renderAdminDashboard();
+                } else {
+                    nav.innerHTML = `
+                        <button onclick="switchTab('progress')" id="nav-progress" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">1.2 Avance y Progreso</button>
+                        <button onclick="switchTab('tasks')" id="nav-tasks" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">1.3 Tareas Registradas</button>
+                        <button onclick="switchTab('form')" id="nav-form" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">1.4 Nuevo Registro</button>
+                    `;
+                    document.getElementById('view-admin-dashboard').classList.add('hidden');
+                    document.getElementById('tab-progress').classList.remove('hidden');
+                    document.getElementById('form-nombre').value = currentUser.nombre;
+                    document.getElementById('auto-rol').innerText = currentUser.rol;
+                    document.getElementById('auto-region').innerText = currentUser.region;
+                    document.getElementById('auto-ciudad').innerText = currentUser.ciudad;
+                    document.getElementById('auto-canal').innerText = currentUser.canal;
+
+                    updateProgressView();
+                    renderWeeksTasks();
+                }
+            } else {
+                document.getElementById('login-error').classList.remove('hidden');
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('view-login').classList.remove('hidden');
+            document.getElementById('login-form').reset();
+            document.getElementById('login-error').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            ['progress', 'tasks', 'form'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`nav-${t}`).className = "py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition";
+            });
+            document.getElementById(`tab-${tab}`).classList.remove('hidden');
+            document.getElementById(`nav-${tab}`).className = "py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition";
+        }
+
+        function switchAdminTab(tab) {
+            renderAdminDashboard();
+        }
+
+        function autofillDateInfo() {
+            const dateVal = document.getElementById('form-fecha').value;
+            if (!dateVal) return;
+            const dateObj = new Date(dateVal + 'T00:00:00');
+            
+            const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+
+            document.getElementById('auto-mes').innerText = meses[dateObj.getMonth()];
+            document.getElementById('auto-anio').innerText = dateObj.getFullYear();
+            const dayIndex = dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1;
+            document.getElementById('auto-dia').innerText = dias[dayIndex];
+        }
+
+        function checkDateAndAutofill() {
+            const dateVal = document.getElementById('form-fecha').value;
+            autofillDateInfo();
+
+            if (festivosColombia2026.includes(dateVal)) {
+                alert("📅 La fecha seleccionada coincide con un DÍA FESTIVO. Se registrará automáticamente con 8.4 horas de novedad.");
+                document.getElementById('form-categoria').value = "Ausencias y Permisos Laborales";
+                updateSubcategories();
+                document.getElementById('form-subcategoria').value = "Ausencias y Permisos Laborales";
+                updateActivities();
+                document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales";
+                
+                lockForStandardHours(8.4);
+            } else {
+                unlockHours();
+            }
+        }
+
+        function handleCategoryChange() {
+            updateSubcategories();
+            unlockHours();
+        }
+
+        function handleSubcategoryChange() {
+            const cat = document.getElementById('form-categoria').value;
+            const sub = document.getElementById('form-subcategoria').value;
+            updateActivities();
+
+            const ausenciasPermitidas = [
+                "Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", 
+                "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"
+            ];
+
+            if (cat === "Ausencias y Permisos Laborales" || ausenciasPermitidas.includes(sub)) {
+                lockForStandardHours(8.4);
+            } else {
+                unlockHours();
+            }
+        }
+
+        function lockForStandardHours(hoursValue) {
+            const container = document.getElementById('hours-container');
+            container.innerHTML = `
+                <div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center">
+                    <span>⚡ Novedad / Festivo detectado: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span>
+                    <input type="hidden" id="form-horainicio" value="08:00">
+                    <input type="hidden" id="form-horafin" value="16:24">
+                </div>
+            `;
+        }
+
+        function unlockHours() {
+            const container = document.getElementById('hours-container');
+            if (container.querySelector('input[type="hidden"]')) {
+                container.innerHTML = `
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label>
+                        <select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label>
+                        <select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
+                            <option value="">Seleccione hora inicio primero...</option>
+                        </select>
+                    </div>
+                `;
+                populateStartHours();
+            }
+        }
+
+        function updateSubcategories() {
+            const cat = document.getElementById('form-categoria').value;
+            const subSelect = document.getElementById('form-subcategoria');
+            subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>';
+            document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
+
+            if (cat && dbListas[cat]) {
+                Object.keys(dbListas[cat]).forEach(sub => {
+                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+                });
+            }
+        }
+
+        function updateActivities() {
+            const cat = document.getElementById('form-categoria').value;
+            const sub = document.getElementById('form-subcategoria').value;
+            const actSelect = document.getElementById('form-actividad');
+            actSelect.innerHTML = '<option value="">Seleccione actividad...</option>';
+
+            if (cat && sub && dbListas[cat][sub]) {
+                dbListas[cat][sub].forEach(act => {
+                    actSelect.innerHTML += `<option value="${act}">${act}</option>`;
+                });
+            }
+        }
+
+        async function saveActivity(event) {
+            event.preventDefault();
+            const estado = document.getElementById('form-estado').value;
+            const fecha = document.getElementById('form-fecha').value;
+            const mes = document.getElementById('auto-mes').innerText;
+            const anio = document.getElementById('auto-anio').innerText;
+            const dia = document.getElementById('auto-dia').innerText;
+            const nombre = currentUser.nombre;
+            const rol = currentUser.rol;
+            const region = currentUser.region;
+            const ciudad = currentUser.ciudad;
+            const canal = currentUser.canal;
+            const categoria = document.getElementById('form-categoria').value;
+            const subcategoria = document.getElementById('form-subcategoria').value;
+            const actividad = document.getElementById('form-actividad').value;
+            const observaciones = document.getElementById('form-observaciones').value;
+
+            let totalHoras = 0;
+            let horaInicio = "";
+            let horaFin = "";
+
+            const hiddenStart = document.getElementById('form-horainicio');
+            if (hiddenStart && hiddenStart.type === "hidden") {
+                totalHoras = 8.4;
+                horaInicio = "08:00";
+                horaFin = "16:24";
+            } else {
+                horaInicio = document.getElementById('form-horainicio').value;
+                horaFin = document.getElementById('form-horafin').value;
+                const [h1, m1] = horaInicio.split(':').map(Number);
+                const [h2, m2] = horaFin.split(':').map(Number);
+                totalHoras = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+
+                if (totalHoras <= 0) {
+                    alert("La hora final debe ser mayor a la hora de inicio.");
+                    return;
+                }
+            }
+
+            const payload = new URLSearchParams({
+                action: "saveTask",
+                estado: estado,
+                codRef: estado,
+                fecha: fecha,
+                mes: mes,
+                anio: anio,
+                dia: dia,
+                nombre: nombre,
+                rol: rol,
+                region: region,
+                ciudad: ciudad,
+                canal: canal,
+                categoria: categoria,
+                subcategoria: subcategoria,
+                actividad: actividad,
+                horaInicio: horaInicio,
+                horaFin: horaFin,
+                totalHoras: totalHoras.toFixed(1),
+                observaciones: observaciones
+            });
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: payload
+                });
+                const result = await res.json();
+                if (result.status === "success") {
+                    alert("¡Actividad guardada en la nube con éxito!");
+                    await loadCloudDatabase();
+                    resetFormToNew();
+                    renderWeeksTasks();
+                    updateProgressView();
+                    switchTab('tasks');
+                } else {
+                    alert("Error al guardar en la nube.");
+                }
+            } catch (e) {
+                console.error("Error de red:", e);
+                alert("No se pudo conectar con el servidor de Google Sheets.");
+            }
+        }
+
+        function editTask(index) {
+            const t = userTasks[index];
+            document.getElementById('edit-index').value = index;
+            document.getElementById('form-title').innerText = "Modificar Tarea Registrada";
+            
+            document.getElementById('form-estado').value = t.estado;
+            document.getElementById('form-fecha').value = t.fecha;
+            autofillDateInfo();
+            
+            document.getElementById('form-categoria').value = t.categoria;
+            updateSubcategories();
+            document.getElementById('form-subcategoria').value = t.subcategoria;
+            updateActivities();
+            document.getElementById('form-actividad').value = t.actividad;
+            
+            if (parseFloat(t.totalHoras) === 8.4) {
+                lockForStandardHours(8.4);
+            } else {
+                unlockHours();
+                document.getElementById('form-horainicio').value = t.horaInicio;
+                filterEndHours();
+                document.getElementById('form-horafin').value = t.horaFin;
+            }
+            document.getElementById('form-observaciones').value = t.observaciones || '';
+
+            switchTab('form');
+        }
+
+        function resetFormToNew() {
+            document.getElementById('edit-index').value = -1;
+            document.getElementById('form-title').innerText = "Registrar Nueva Actividad Diaria";
+            document.getElementById('activity-form').reset();
+            document.getElementById('form-nombre').value = currentUser.nombre;
+            unlockHours();
+        }
+
+        function getWeekOfMonth(dateString) {
+            const date = new Date(dateString + 'T00:00:00');
+            const day = date.getDate();
+            return Math.ceil(day / 7);
+        }
+
+        function countBusinessDaysUntilNow() {
+            const year = liveServerDate.getFullYear();
+            const month = liveServerDate.getMonth();
+            const todayDate = liveServerDate.getDate();
+            let count = 0;
+
+            for (let d = 1; d <= todayDate; d++) {
+                const tempDate = new Date(year, month, d);
+                const dayOfWeek = tempDate.getDay();
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        function renderWeeksTasks() {
+            const container = document.getElementById('weeks-container');
+            container.innerHTML = '';
+
+            const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
+
+            if (myTasks.length === 0) {
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas todavía en la nube.</div>`;
+                return;
+            }
+
+            const weeksMap = {};
+            myTasks.forEach((t) => {
+                const originalIndex = userTasks.indexOf(t);
+                const weekNum = getWeekOfMonth(t.fecha);
+                if (!weeksMap[weekNum]) weeksMap[weekNum] = [];
+                weeksMap[weekNum].push({ ...t, originalIndex });
+            });
+
+            Object.keys(weeksMap).sort().forEach(weekNum => {
+                let rowsHtml = '';
+                weeksMap[weekNum].forEach(t => {
+                    rowsHtml += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 border-b"><span class="px-2 py-1 text-xs rounded font-semibold ${t.estado === 'Ejecutado' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'}">${t.estado}</span></td>
+                            <td class="p-3 border-b">${t.fecha}</td>
+                            <td class="p-3 border-b">${t.horaInicio} - ${t.horaFin} (${t.totalHoras} hrs)</td>
+                            <td class="p-3 border-b">${t.categoria}</td>
+                            <td class="p-3 border-b">${t.subcategoria}</td>
+                            <td class="p-3 border-b">${t.actividad}</td>
+                            <td class="p-3 border-b text-center">
+                                <button onclick="editTask(${t.originalIndex})" title="Modificar tarea" class="bg-cyan-50 hover:bg-cyan-100 text-cyan-600 p-2 rounded-lg transition inline-flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4">
+                        <div class="bg-gray-100 px-6 py-3 border-b flex justify-between items-center">
+                            <h3 class="font-bold text-gray-700 text-sm">📅 ${weekNum}ª Semana del Mes</h3>
+                            <span class="text-xs text-gray-500">${weeksMap[weekNum].length} registro(s)</span>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse text-sm">
+                                <thead>
+                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                                        <th class="p-3 border-b">Estado</th>
+                                        <th class="p-3 border-b">Fecha</th>
+                                        <th class="p-3 border-b">Horario / Horas</th>
+                                        <th class="p-3 border-b">Categoría</th>
+                                        <th class="p-3 border-b">Subcategoría</th>
+                                        <th class="p-3 border-b">Actividad / Proceso</th>
+                                        <th class="p-3 border-b text-center">Modificar</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${rowsHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function updateProgressView() {
+            const businessDaysTarget = countBusinessDaysUntilNow();
+            const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
+            const uniqueDatesWorked = [...new Set(myTasks.map(t => t.fecha))];
+            const uniqueDaysCount = uniqueDatesWorked.length;
+
+            document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
+            const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDaysCount / businessDaysTarget) * 100)) : 0;
+            document.getElementById('stat-percentage').innerText = compliance + '%';
+
+            const weeklyHoursMap = {};
+            myTasks.forEach(t => {
+                const w = getWeekOfMonth(t.fecha);
+                if (!weeklyHoursMap[w]) weeklyHoursMap[w] = 0;
+                weeklyHoursMap[w] += parseFloat(t.totalHoras);
+            });
+
+            const weeklyContainer = document.getElementById('stat-weekly-hours');
+            weeklyContainer.innerHTML = '';
+
+            if (Object.keys(weeklyHoursMap).length === 0) {
+                weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas</span>`;
+                return;
+            }
+
+            Object.keys(weeklyHoursMap).sort().forEach(w => {
+                const hrs = weeklyHoursMap[w];
+                let alertHtml = '';
+                if (hrs > 42) {
+                    alertHtml = `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: Validar horas registradas en esta semana (${hrs.toFixed(1)} hrs)</div>`;
+                }
+                weeklyContainer.innerHTML += `
+                    <div class="mb-2">
+                        <span class="text-gray-700">Semana ${w}:</span> <span class="font-black">${hrs.toFixed(1)} hrs</span>
+                        ${alertHtml}
+                    </div>
+                `;
+            });
+        }
+
+        function renderAdminDashboard() {
+            const businessDaysTarget = countBusinessDaysUntilNow();
+            const rankingBody = document.getElementById('admin-ranking-body');
+            rankingBody.innerHTML = '';
+
+            const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin" && dbPersonas[k].rol !== "Administrador");
+            let teamStats = [];
+
+            let totalAdminReunionesCount = 0;
+            let totalGeneralTasks = userTasks.length;
+
+            trainers.forEach(cedula => {
+                const p = dbPersonas[cedula];
+                const pTasks = userTasks.filter(t => t.nombre === p.nombre);
+                const uniqueDays = [...new Set(pTasks.map(t => t.fecha))].length;
+                const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
+
+                const dailyHoursMap = {};
+                pTasks.forEach(t => {
+                    if (!dailyHoursMap[t.fecha]) dailyHoursMap[t.fecha] = 0;
+                    dailyHoursMap[t.fecha] += parseFloat(t.totalHoras);
+
+                    if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") {
+                        totalAdminReunionesCount++;
+                    }
+                });
+
+                let hasOverload = false;
+                Object.keys(dailyHoursMap).forEach(date => {
+                    if (dailyHoursMap[date] > 42) hasOverload = true;
+                });
+
+                teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
+            });
+
+            const alertContainer = document.getElementById('admin-admin-alert-container');
+            const adminPercentage = totalGeneralTasks > 0 ? (totalAdminReunionesCount / totalGeneralTasks) * 100 : 0;
+
+            if (adminPercentage >= 35) {
+                alertContainer.classList.remove('hidden');
+                alertContainer.innerHTML = `
+                    <div class="bg-amber-950/80 border border-amber-600/50 text-amber-200 p-4 rounded-xl flex items-start space-x-3 shadow-lg">
+                        <span class="text-xl">⚠️</span>
+                        <div>
+                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa: Alto uso en Categoría Administrativo / Reuniones</h4>
+                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos. Se recomienda revisar la optimización de espacios formativos de campo.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                alertContainer.classList.add('hidden');
+            }
+
+            teamStats.sort((a, b) => b.compliance - a.compliance);
+
+            teamStats.forEach((st, idx) => {
+                rankingBody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
+                        <td class="p-3 border-b border-slate-800 font-medium text-white">${st.nombre}</td>
+                        <td class="p-3 border-b border-slate-800">${st.uniqueDays} días</td>
+                        <td class="p-3 border-b border-slate-800 font-black overlap-theme-text">${st.compliance}%</td>
+                        <td class="p-3 border-b border-slate-800">
+                            ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso > 42h/día</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            renderTopListWithExecutantes('categoria', 'top-categories');
+            renderTopListWithExecutantes('subcategoria', 'top-subcategories');
+            renderTopListWithExecutantes('actividad', 'top-activities');
+        }
+
+        function renderTopListWithExecutantes(property, elementId) {
+            const counts = {};
+            const itemExecutantes = {};
+
+            userTasks.forEach(t => {
+                const val = t[property];
+                if (val) {
+                    counts[val] = (counts[val] || 0) + 1;
+                    if (!itemExecutantes[val]) itemExecutantes[val] = new Set();
+                    if (t.nombre) {
+                        itemExecutantes[val].add(t.nombre);
+                    }
+                }
+            });
+
+            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
+            const el = document.getElementById(elementId);
+            el.innerHTML = '';
+
+            if (sorted.length === 0) {
+                el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`;
+                return;
+            }
+
+            sorted.forEach((item, index) => {
+                const executorsList = Array.from(itemExecutantes[item] || []).join(', ');
+                
+                const li = document.createElement('li');
+                li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
+                li.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-200">${index + 1}. ${item}</span>
+                        <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
+                    </div>
+                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
+                        <p class="font-semibold text-cyan-400 mb-1">👥 Todos los ejecutivos:</p>
+                        <p class="text-slate-300 font-normal">${executorsList || 'Ninguno registrado'}</p>
+                    </div>
+                `;
+
+                let mobileTimeout = null;
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const tooltip = li.querySelector('div.absolute');
+                    if (tooltip) {
+                        tooltip.classList.remove('hidden');
+                        tooltip.classList.add('block');
+                        
+                        if (mobileTimeout) clearTimeout(mobileTimeout);
+                        
+                        mobileTimeout = setTimeout(() => {
+                            tooltip.classList.remove('block');
+                            tooltip.classList.add('hidden');
+                        }, 8000);
+                    }
+                });
+
+                el.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>

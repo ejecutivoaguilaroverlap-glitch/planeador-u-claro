@@ -67,7 +67,7 @@
 
         <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
 
-            <!-- ================= VISTA ADMINISTRADOR MODO OSCURO (EXCLUSIVA ADMIN) ================= -->
+            <!-- ================= VISTA ADMINISTRADOR MODO OSCURO ================= -->
             <div id="view-admin-dashboard" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -82,14 +82,14 @@
                     
                     <div class="mb-8">
                         <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center space-x-2">
-                            <span>🏆 Ranking de Cumplimiento (Mayor a Menor)</span>
+                            <span>🏆 Ranking de Cumplimiento (Días Hábiles Lunes a Viernes)</span>
                         </h3>
                         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
                                     <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase font-mono">
                                         <th class="p-3 border-b border-slate-700">Posición</th>
-                                        <th class="p-3 border-b border-slate-700">Ejecutivo</th>
+                                        <th class="p-3 border-b border-slate-700">Entrenador</th>
                                         <th class="p-3 border-b border-slate-700">Días Diligenciados</th>
                                         <th class="p-3 border-b border-slate-700">Cumplimiento</th>
                                         <th class="p-3 border-b border-slate-700">Alerta Horas Diario (> 42h)</th>
@@ -127,7 +127,7 @@
                             <p id="stat-percentage" class="text-3xl font-black overlap-theme-text mt-2">0%</p>
                         </div>
                         <div class="bg-gray-50 p-4 rounded-lg border">
-                            <p class="text-xs text-gray-500 font-semibold uppercase">Días Únicos Diligenciados / Hábiles</p>
+                            <p class="text-xs text-gray-500 font-semibold uppercase">Días Únicos Diligenciados / Hábiles del Mes</p>
                             <p id="stat-days" class="text-3xl font-black text-gray-800 mt-2">0 / 0</p>
                         </div>
                         <div class="bg-gray-50 p-4 rounded-lg border">
@@ -254,35 +254,28 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
-        // Función auxiliar para limpiar y formatear fechas a DD/MM/AAAA
+        // Función para limpiar fechas a DD/MM/AAAA
         function formatDateClean(dateStr) {
             if (!dateStr) return "";
-            let cleanStr = String(dateStr).split('T')[0]; // Remueve marcas de tiempo ISO si las trae
+            let cleanStr = String(dateStr).split('T')[0];
             let parts = cleanStr.split('-');
-            if (parts.length === 3) {
-                // Si viene en AAAA-MM-DD
-                if (parts[0].length === 4) {
-                    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-                }
+            if (parts.length === 3 && parts[0].length === 4) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
             }
             return cleanStr;
         }
 
-        // Función auxiliar para limpiar y extraer solo HH:MM de horas que vengan con formato de Excel
+        // Función para limpiar y extraer solo HH:MM
         function formatTimeClean(timeStr) {
             if (!timeStr) return "";
             let str = String(timeStr);
             if (str.includes('T')) {
-                // Extrae la parte de la hora de cadenas ISO como 1899-12-30T19:26:16.000Z
                 let timePart = str.split('T')[1];
                 if (timePart) {
                     let hm = timePart.split(':');
-                    if (hm.length >= 2) {
-                        return `${hm[0]}:${hm[1]}`;
-                    }
+                    if (hm.length >= 2) return `${hm[0]}:${hm[1]}`;
                 }
             }
-            // Si ya viene tipo "08:30" o "8:30:00"
             let parts = str.split(':');
             if (parts.length >= 2) {
                 return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
@@ -296,16 +289,20 @@
                 const data = await response.json();
                 
                 if (data.status === "success") {
-                    // Mapear Base_Personas
+                    // Mapear Base_Personas con definición de roles (admin vs entrenador)
                     dbPersonas = {};
                     if (data.personas && data.personas.length > 1) {
                         for (let i = 1; i < data.personas.length; i++) {
                             const row = data.personas[i];
                             if (row[0] !== undefined && row[0] !== "") {
+                                let rawRol = String(row[2] || "").trim().toLowerCase();
+                                // Si en la columna el rol es "admin", lo dejamos como "Admin", de lo contrario "Entrenador"
+                                let rolDefinitivo = (rawRol === "admin" || rawRol === "administrador") ? "Admin" : (row[2] || "Entrenador");
+
                                 dbPersonas[String(row[0]).trim()] = {
                                     cedula: String(row[0]).trim(),
                                     nombre: row[1] || "",
-                                    rol: row[2] || "",
+                                    rol: rolDefinitivo,
                                     region: row[3] || "",
                                     ciudad: row[4] || "",
                                     canal: row[5] || ""
@@ -329,28 +326,16 @@
                         let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
                         let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
 
-                        if (!cat && sub && ultimaCatValida) {
-                            cat = ultimaCatValida;
-                        } else if (cat) {
-                            ultimaCatValida = cat;
-                        }
+                        if (!cat && sub && ultimaCatValida) cat = ultimaCatValida;
+                        else if (cat) ultimaCatValida = cat;
 
-                        if (!sub && act && ultimaSubValida) {
-                            sub = ultimaSubValida;
-                        } else if (sub) {
-                            ultimaSubValida = sub;
-                        }
+                        if (!sub && act && ultimaSubValida) sub = ultimaSubValida;
+                        else if (sub) ultimaSubValida = sub;
 
-                        if (cat) {
-                            if (!dbListas[cat]) dbListas[cat] = {};
-                        }
-                        if (cat && sub) {
-                            if (!dbListas[cat][sub]) dbListas[cat][sub] = [];
-                        }
-                        if (cat && sub && act) {
-                            if (!dbListas[cat][sub].includes(act)) {
-                                dbListas[cat][sub].push(act);
-                            }
+                        if (cat && !dbListas[cat]) dbListas[cat] = {};
+                        if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
+                        if (cat && sub && act && !dbListas[cat][sub].includes(act)) {
+                            dbListas[cat][sub].push(act);
                         }
                     }
 
@@ -397,7 +382,6 @@
         function populateCategorySelect() {
             const catSelect = document.getElementById('form-categoria');
             if (!catSelect) return;
-            
             let optionsHtml = '<option value="">Seleccione...</option>';
             Object.keys(dbListas).forEach(cat => {
                 optionsHtml += `<option value="${cat}">${cat}</option>`;
@@ -456,7 +440,8 @@
 
                 const nav = document.getElementById('main-nav');
 
-                if (currentUser.rol === "Admin" || currentUser.rol === "Administrador") {
+                // Validación estricta de Rol Admin vs Entrenador
+                if (currentUser.rol === "Admin") {
                     nav.innerHTML = `
                         <button onclick="switchAdminTab('dashboard')" id="nav-admin" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Panel Gerencial (Modo Oscuro)</button>
                     `;
@@ -533,7 +518,6 @@
                 document.getElementById('form-subcategoria').value = "Ausencias y Permisos Laborales";
                 updateActivities();
                 document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales";
-                
                 lockForStandardHours(8.4);
             } else {
                 unlockHours();
@@ -744,6 +728,7 @@
             return Math.ceil(day / 7);
         }
 
+        // Conteo automático de días hábiles (Lunes a Viernes) desde el día 1 hasta hoy del mes en curso
         function countBusinessDaysUntilNow() {
             const year = liveServerDate.getFullYear();
             const month = liveServerDate.getMonth();
@@ -752,7 +737,7 @@
 
             for (let d = 1; d <= todayDate; d++) {
                 const tempDate = new Date(year, month, d);
-                const dayOfWeek = tempDate.getDay();
+                const dayOfWeek = tempDate.getDay(); // 0 = Domingo, 6 = Sábado
                 if (dayOfWeek >= 1 && dayOfWeek <= 5) {
                     count++;
                 }
@@ -837,7 +822,23 @@
         function updateProgressView() {
             const businessDaysTarget = countBusinessDaysUntilNow();
             const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
-            const uniqueDatesWorked = [...new Set(myTasks.map(t => formatDateClean(t.fecha)))];
+            
+            // Filtrar solo días únicos diligenciados que correspondan al mes y año actual
+            const currentMonthIndex = liveServerDate.getMonth();
+            const currentYearNum = liveServerDate.getFullYear();
+
+            const uniqueDatesWorked = [...new Set(myTasks.map(t => {
+                let cleanStr = String(t.fecha).split('T')[0];
+                let parts = cleanStr.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                    if (dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum) {
+                        return cleanStr;
+                    }
+                }
+                return null;
+            }))].filter(Boolean);
+
             const uniqueDaysCount = uniqueDatesWorked.length;
 
             document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
@@ -879,7 +880,8 @@
             const rankingBody = document.getElementById('admin-ranking-body');
             rankingBody.innerHTML = '';
 
-            const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin" && dbPersonas[k].rol !== "Administrador");
+            // Solo mostrar entrenadores en el ranking (excluyendo administradores)
+            const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
             let teamStats = [];
 
             let totalAdminReunionesCount = 0;
@@ -888,7 +890,21 @@
             trainers.forEach(cedula => {
                 const p = dbPersonas[cedula];
                 const pTasks = userTasks.filter(t => t.nombre === p.nombre);
-                const uniqueDays = [...new Set(pTasks.map(t => formatDateClean(t.fecha)))].length;
+                
+                const currentMonthIndex = liveServerDate.getMonth();
+                const currentYearNum = liveServerDate.getFullYear();
+                const uniqueDays = [...new Set(pTasks.map(t => {
+                    let cleanStr = String(t.fecha).split('T')[0];
+                    let parts = cleanStr.split('-');
+                    if (parts.length === 3 && parts[0].length === 4) {
+                        let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                        if (dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum) {
+                            return cleanStr;
+                        }
+                    }
+                    return null;
+                }))].filter(Boolean).length;
+
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
 
                 const dailyHoursMap = {};
@@ -996,9 +1012,7 @@
                     if (tooltip) {
                         tooltip.classList.remove('hidden');
                         tooltip.classList.add('block');
-                        
                         if (mobileTimeout) clearTimeout(mobileTimeout);
-                        
                         mobileTimeout = setTimeout(() => {
                             tooltip.classList.remove('block');
                             tooltip.classList.add('hidden');

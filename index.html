@@ -262,7 +262,8 @@
     <!-- ZONA 3: CONTROLADOR Y MOTOR JAVASCRIPT                                    -->
     <!-- ========================================================================= -->
     <script>
-        const API_URL = "https://script.google.com/macros/s/AKfycbz2VXNwrSDm0jiWDaZn-Mw_U9T0B8qBbNxVqPPGmrl9CoFmEieLpIoi7iUjivk94zZ5/exec";
+        // Nueva URL API actualizada
+        const API_URL = "https://script.google.com/macros/s/AKfycbyUB7ym8OShp-JruiwvOtZHfgBYTUdkSIqZJERSZZlQY5_mKit275Q3jrYH0OFSsSI-/exec";
 
         let dbPersonas = {};
         let dbListas = {};
@@ -279,7 +280,6 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
-        /** Indicador visual de carga (Spinner) */
         function showLoading(text = "Procesando información...") {
             document.getElementById('loading-text').innerText = text;
             document.getElementById('loading-overlay').classList.remove('hidden');
@@ -383,6 +383,7 @@
                             const r = data.registros[i];
                             if (r[2]) {
                                 userTasks.push({
+                                    rowIndex: i + 1, // Fila real en Google Sheets
                                     estado: r[0],
                                     codRef: r[1],
                                     fecha: r[2],
@@ -726,8 +727,8 @@
             }
         }
 
-        /** Función robusta para eliminar un registro por coincidencia de datos */
-        async function deleteTask(fecha, nombre, categoria, horaInicio, horaFin) {
+        /** Función de eliminación directa por rowIndex exacto */
+        async function deleteTask(rowIndex) {
             if (!confirm("¿Estás seguro de que deseas eliminar este registro de la base de datos?")) return;
 
             showLoading("Eliminando registro de la nube...");
@@ -735,11 +736,7 @@
             try {
                 const payload = new URLSearchParams({
                     action: "deleteTask",
-                    fecha: fecha,
-                    nombre: nombre,
-                    categoria: categoria,
-                    horaInicio: horaInicio,
-                    horaFin: horaFin
+                    rowIndex: rowIndex
                 });
 
                 const res = await fetch(API_URL, {
@@ -829,7 +826,7 @@
                             <td class="p-3 border-b">${t.subcategoria}</td>
                             <td class="p-3 border-b">${t.actividad}</td>
                             <td class="p-3 border-b text-center">
-                                <button onclick="deleteTask('${t.fecha}', '${t.nombre}', '${t.categoria}', '${t.horaInicio}', '${t.horaFin}')" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
+                                <button onclick="deleteTask(${t.rowIndex})" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -974,108 +971,4 @@
                     if (dailyHoursMap[date] > 42) hasOverload = true;
                 });
 
-                teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
-            });
-
-            const alertContainer = document.getElementById('admin-admin-alert-container');
-            const adminPercentage = totalGeneralTasks > 0 ? (totalAdminReunionesCount / totalGeneralTasks) * 100 : 0;
-
-            if (adminPercentage >= 35) {
-                alertContainer.classList.remove('hidden');
-                alertContainer.innerHTML = `
-                    <div class="bg-amber-950/80 border border-amber-600/50 text-amber-200 p-4 rounded-xl flex items-start space-x-3 shadow-lg">
-                        <span class="text-xl">⚠️</span>
-                        <div>
-                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa: Alto uso en Categoría Administrativo / Reuniones</h4>
-                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos. Se recomienda revisar la optimización de espacios formativos de campo.</p>
-                        </div>
-                    </div>
-                `;
-            } else {
-                alertContainer.classList.add('hidden');
-            }
-
-            teamStats.sort((a, b) => b.compliance - a.compliance);
-
-            teamStats.forEach((st, idx) => {
-                const colorClass = getComplianceColorClass(st.compliance);
-
-                rankingBody.innerHTML += `
-                    <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
-                        <td class="p-3 border-b border-slate-800 font-medium text-white">${st.nombre}</td>
-                        <td class="p-3 border-b border-slate-800">${st.uniqueDays} días</td>
-                        <td class="p-3 border-b border-slate-800 ${colorClass}">${st.compliance}%</td>
-                        <td class="p-3 border-b border-slate-800">
-                            ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso > 42h/día</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
-                        </td>
-                    </tr>
-                `;
-            });
-
-            renderTopListWithExecutantes('categoria', 'top-categories');
-            renderTopListWithExecutantes('subcategoria', 'top-subcategories');
-            renderTopListWithExecutantes('actividad', 'top-activities');
-        }
-
-        function renderTopListWithExecutantes(property, elementId) {
-            const counts = {};
-            const itemExecutantes = {};
-
-            userTasks.forEach(t => {
-                const val = t[property];
-                if (val) {
-                    counts[val] = (counts[val] || 0) + 1;
-                    if (!itemExecutantes[val]) itemExecutantes[val] = new Set();
-                    if (t.nombre) {
-                        itemExecutantes[val].add(t.nombre);
-                    }
-                }
-            });
-
-            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
-            const el = document.getElementById(elementId);
-            el.innerHTML = '';
-
-            if (sorted.length === 0) {
-                el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`;
-                return;
-            }
-
-            sorted.forEach((item, index) => {
-                const executorsList = Array.from(itemExecutantes[item] || []).join(', ');
-                
-                const li = document.createElement('li');
-                li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
-                li.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-200">${index + 1}. ${item}</span>
-                        <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
-                    </div>
-                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
-                        <p class="font-semibold text-cyan-400 mb-1">👥 Todos los ejecutivos:</p>
-                        <p class="text-slate-300 font-normal">${executorsList || 'Ninguno registrado'}</p>
-                    </div>
-                `;
-
-                let mobileTimeout = null;
-                li.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const tooltip = li.querySelector('div.absolute');
-                    if (tooltip) {
-                        tooltip.classList.remove('hidden');
-                        tooltip.classList.add('block');
-                        if (mobileTimeout) clearTimeout(mobileTimeout);
-                        mobileTimeout = setTimeout(() => {
-                            tooltip.classList.remove('block');
-                            tooltip.classList.add('hidden');
-                        }, 8000);
-                    }
-                });
-
-                el.appendChild(li);
-            });
-        }
-    </script>
-</body>
-</html>
+                teamStats

@@ -279,7 +279,7 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
-        /** Funciones para mostrar y ocultar el indicador de carga visual (Spinner) */
+        /** Indicador visual de carga (Spinner) */
         function showLoading(text = "Procesando información...") {
             document.getElementById('loading-text').innerText = text;
             document.getElementById('loading-overlay').classList.remove('hidden');
@@ -383,7 +383,6 @@
                             const r = data.registros[i];
                             if (r[2]) {
                                 userTasks.push({
-                                    rowIndex: i + 1, // Guardamos la fila real de Google Sheets para poder eliminarla
                                     estado: r[0],
                                     codRef: r[1],
                                     fecha: r[2],
@@ -465,8 +464,7 @@
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
-            showLoading("Iniciando sesión, conectando con U-Claro...");
-
+            showLoading("Iniciando sesión...");
             await loadCloudDatabase();
             hideLoading();
 
@@ -640,7 +638,6 @@
             }
         }
 
-        /** Envía y guarda los datos con indicador de carga activo */
         async function saveActivity(event) {
             event.preventDefault();
             const estado = document.getElementById('form-estado').value;
@@ -729,8 +726,8 @@
             }
         }
 
-        /** Función para eliminar un registro de la tabla y de Google Sheets */
-        async function deleteTask(rowIndex) {
+        /** Función robusta para eliminar un registro por coincidencia de datos */
+        async function deleteTask(fecha, nombre, categoria, horaInicio, horaFin) {
             if (!confirm("¿Estás seguro de que deseas eliminar este registro de la base de datos?")) return;
 
             showLoading("Eliminando registro de la nube...");
@@ -738,7 +735,11 @@
             try {
                 const payload = new URLSearchParams({
                     action: "deleteTask",
-                    rowIndex: rowIndex
+                    fecha: fecha,
+                    nombre: nombre,
+                    categoria: categoria,
+                    horaInicio: horaInicio,
+                    horaFin: horaFin
                 });
 
                 const res = await fetch(API_URL, {
@@ -828,7 +829,7 @@
                             <td class="p-3 border-b">${t.subcategoria}</td>
                             <td class="p-3 border-b">${t.actividad}</td>
                             <td class="p-3 border-b text-center">
-                                <button onclick="deleteTask(${t.rowIndex})" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
+                                <button onclick="deleteTask('${t.fecha}', '${t.nombre}', '${t.categoria}', '${t.horaInicio}', '${t.horaFin}')" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>

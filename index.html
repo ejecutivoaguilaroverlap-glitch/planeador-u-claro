@@ -4,20 +4,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claro & Overlap · Planeador de Ocupación</title>
-    <!-- Tailwind CSS CDN para el diseño visual -->
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; }
         .overlap-theme-bg { background-color: #00A9CE; }
         .overlap-theme-text { color: #00A9CE; }
         .overlap-theme-border { border-color: #00A9CE; }
+        /* Animación para el indicador de carga */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .spinner { animation: spin 1s linear infinite; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- ========================================================================= -->
+    <!-- MODAL DE CARGA GLOBAL (SPINNER)                                           -->
+    <!-- ========================================================================= -->
+    <div id="loading-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col items-center justify-center hidden">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl flex items-center space-x-4 border border-cyan-100">
+            <div class="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full spinner"></div>
+            <div>
+                <p id="loading-text" class="font-bold text-gray-800 text-sm">Procesando información...</p>
+                <p class="text-xs text-gray-500">Por favor, espere un momento</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
     <!-- ZONA 1: VISTA DE AUTENTICACIÓN (LOGIN)                                    -->
-    <!-- Área encargada de validar la cédula del usuario contra la Base de Personas-->
     <!-- ========================================================================= -->
     <div id="view-login" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 overlap-theme-border">
@@ -48,8 +63,7 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- ZONA 2: CONTENEDOR PRINCIPAL POST-LOGIN (APLICACIÓN WEB)                  -->
-    <!-- Agrupa la barra de navegación superior y el contenido dinámico por rol      -->
+    <!-- ZONA 2: CONTENEDOR PRINCIPAL POST-LOGIN                                   -->
     <!-- ========================================================================= -->
     <div id="main-app" class="hidden flex-grow flex flex-col">
         <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
@@ -68,15 +82,12 @@
         </header>
 
         <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6">
-            <!-- Navegación dinámica inyectada según el rol del usuario -->
+            <!-- Navegación dinámica por rol -->
         </nav>
 
         <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
 
-            <!-- ================================================================= -->
-            <!-- ÁREA ADMINISTRATIVA: PANEL GERENCIAL (MODO OSCURO)                -->
-            <!-- Muestra ranking con rangos de color y alertas de uso del equipo   -->
-            <!-- ================================================================= -->
+            <!-- PANEL GERENCIAL (ADMIN) -->
             <div id="view-admin-dashboard" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -126,10 +137,7 @@
                 </div>
             </div>
 
-            <!-- ================================================================= -->
-            <!-- ÁREA OPERATIVA: FASE 1.2 - AVANCE Y PROGRESO                     -->
-            <!-- Indicador personal de cumplimiento y horas semanales              -->
-            <!-- ================================================================= -->
+            <!-- FASE 1.2: AVANCE Y PROGRESO -->
             <div id="tab-progress" class="space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Días Hábiles Lunes a Viernes)</h2>
@@ -150,10 +158,7 @@
                 </div>
             </div>
 
-            <!-- ================================================================= -->
-            <!-- ÁREA OPERATIVA: FASE 1.3 - TAREAS REGISTRADAS                   -->
-            <!-- Historial agrupado por semanas con formato de fecha y hora limpio -->
-            <!-- ================================================================= -->
+            <!-- FASE 1.3: TAREAS REGISTRADAS -->
             <div id="tab-tasks" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">Historial de Actividades por Semana</h2>
@@ -162,10 +167,7 @@
                 <div id="weeks-container" class="space-y-6"></div>
             </div>
 
-            <!-- ================================================================= -->
-            <!-- ÁREA OPERATIVA: FASE 1.4 - NUEVO REGISTRO / FORMULARIO            -->
-            <!-- Captura de actividades con listas en cascada hasta la fila 100    -->
-            <!-- ================================================================= -->
+            <!-- FASE 1.4: NUEVO REGISTRO -->
             <div id="tab-form" class="hidden space-y-6 max-w-3xl mx-auto">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 id="form-title" class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Actividad Diaria</h2>
@@ -258,10 +260,8 @@
 
     <!-- ========================================================================= -->
     <!-- ZONA 3: CONTROLADOR Y MOTOR JAVASCRIPT                                    -->
-    <!-- Funciones de conectividad con Apps Script, formato y lógica de negocio    -->
     <!-- ========================================================================= -->
     <script>
-        // URL de la API de Google Apps Script publicada
         const API_URL = "https://script.google.com/macros/s/AKfycbz2VXNwrSDm0jiWDaZn-Mw_U9T0B8qBbNxVqPPGmrl9CoFmEieLpIoi7iUjivk94zZ5/exec";
 
         let dbPersonas = {};
@@ -272,7 +272,6 @@
 
         document.getElementById('current-device-date').innerText = `Sincronizado: ${liveServerDate.toLocaleString()}`;
 
-        // Listado de días festivos oficiales en Colombia para el año 2026
         const festivosColombia2026 = [
             "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03", 
             "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29", 
@@ -280,21 +279,22 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
-        /**
-         * Asigna clases de color según los rangos de cumplimiento solicitados:
-         * 0% - 70%  => Rojo (Alerta crítica)
-         * 71% - 89% => Amarillo (Precaución)
-         * 90% - 100%=> Verde (Cumplimiento óptimo)
-         */
+        /** Funciones para mostrar y ocultar el indicador de carga visual (Spinner) */
+        function showLoading(text = "Procesando información...") {
+            document.getElementById('loading-text').innerText = text;
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        }
+
+        function hideLoading() {
+            document.getElementById('loading-overlay').classList.add('hidden');
+        }
+
         function getComplianceColorClass(val) {
             if (val <= 70) return "text-red-500 font-black";
             if (val <= 89) return "text-amber-500 font-black";
             return "text-emerald-500 font-black";
         }
 
-        /**
-         * Limpia y formatea cualquier fecha proveniente de la nube a formato DD/MM/AAAA
-         */
         function formatDateClean(dateStr) {
             if (!dateStr) return "";
             let cleanStr = String(dateStr).split('T')[0];
@@ -305,9 +305,6 @@
             return cleanStr;
         }
 
-        /**
-         * Limpia y extrae estrictamente el formato HH:MM (sin segundos ni marcas de tiempo ISO)
-         */
         function formatTimeClean(timeStr) {
             if (!timeStr) return "";
             let str = String(timeStr);
@@ -325,16 +322,12 @@
             return str;
         }
 
-        /**
-         * Carga de forma asíncrona la base de datos completa desde Google Sheets (API Apps Script)
-         */
         async function loadCloudDatabase() {
             try {
                 const response = await fetch(`${API_URL}?action=getDatabase`);
                 const data = await response.json();
                 
                 if (data.status === "success") {
-                    // Mapeo de la pestaña Base_Personas y asignación estricta de roles (Admin vs Entrenador)
                     dbPersonas = {};
                     if (data.personas && data.personas.length > 1) {
                         for (let i = 1; i < data.personas.length; i++) {
@@ -355,7 +348,6 @@
                         }
                     }
 
-                    // Mapeo vertical de Listas (hasta la fila 100), heredando celdas vacías intermedias
                     dbListas = {};
                     const cats = data.categorias || [];
                     const subs = data.subcategorias || [];
@@ -385,13 +377,13 @@
 
                     populateCategorySelect();
 
-                    // Mapeo de la pestaña Registros históricos
                     userTasks = [];
                     if (data.registros && data.registros.length > 1) {
                         for (let i = 1; i < data.registros.length; i++) {
                             const r = data.registros[i];
                             if (r[2]) {
                                 userTasks.push({
+                                    rowIndex: i + 1, // Guardamos la fila real de Google Sheets para poder eliminarla
                                     estado: r[0],
                                     codRef: r[1],
                                     fecha: r[2],
@@ -423,7 +415,6 @@
         
         loadCloudDatabase();
 
-        /** Rellena el menú desplegable principal de Categorías */
         function populateCategorySelect() {
             const catSelect = document.getElementById('form-categoria');
             if (!catSelect) return;
@@ -434,7 +425,6 @@
             catSelect.innerHTML = optionsHtml;
         }
 
-        /** Rellena las horas de inicio permitidas (de 06:00 a 17:00 en intervalos de 30 min) sin segundos */
         function populateStartHours() {
             const select = document.getElementById('form-horainicio');
             if (!select) return;
@@ -448,7 +438,6 @@
         }
         populateStartHours();
 
-        /** Filtra dinámicamente las horas de fin posteriores a la hora de inicio seleccionada */
         function filterEndHours() {
             const startVal = document.getElementById('form-horainicio').value;
             const endSelect = document.getElementById('form-horafin');
@@ -471,13 +460,15 @@
             }
         }
 
-        /** Proceso de Autenticación por Cédula */
         async function handleLogin(event) {
             event.preventDefault();
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
+            showLoading("Iniciando sesión, conectando con U-Claro...");
+
             await loadCloudDatabase();
+            hideLoading();
 
             if (user === pass && dbPersonas[user]) {
                 currentUser = dbPersonas[user];
@@ -519,7 +510,6 @@
             }
         }
 
-        /** Cierra sesión y retorna a la pantalla de login */
         function handleLogout() {
             currentUser = null;
             document.getElementById('main-app').classList.add('hidden');
@@ -528,7 +518,6 @@
             document.getElementById('login-error').classList.add('hidden');
         }
 
-        /** Control de navegación entre pestañas para Entrenadores */
         function switchTab(tab) {
             ['progress', 'tasks', 'form'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -542,7 +531,6 @@
             renderAdminDashboard();
         }
 
-        /** Relleno automático de mes, año y día a partir de la fecha seleccionada */
         function autofillDateInfo() {
             const dateVal = document.getElementById('form-fecha').value;
             if (!dateVal) return;
@@ -557,7 +545,6 @@
             document.getElementById('auto-dia').innerText = dias[dayIndex];
         }
 
-        /** Valida si la fecha seleccionada es festivo para automatizar novedad */
         function checkDateAndAutofill() {
             const dateVal = document.getElementById('form-fecha').value;
             autofillDateInfo();
@@ -653,7 +640,7 @@
             }
         }
 
-        /** Envía y guarda los datos del formulario de actividades hacia Google Sheets */
+        /** Envía y guarda los datos con indicador de carga activo */
         async function saveActivity(event) {
             event.preventDefault();
             const estado = document.getElementById('form-estado').value;
@@ -715,12 +702,16 @@
                 observaciones: observaciones
             });
 
+            showLoading("Guardando actividad en la nube...");
+
             try {
                 const res = await fetch(API_URL, {
                     method: "POST",
                     body: payload
                 });
                 const result = await res.json();
+                hideLoading();
+
                 if (result.status === "success") {
                     alert("¡Actividad guardada en la nube con éxito!");
                     await loadCloudDatabase();
@@ -732,37 +723,44 @@
                     alert("Error al guardar en la nube.");
                 }
             } catch (e) {
+                hideLoading();
                 console.error("Error de red:", e);
                 alert("No se pudo conectar con el servidor de Google Sheets.");
             }
         }
 
-        function editTask(index) {
-            const t = userTasks[index];
-            document.getElementById('edit-index').value = index;
-            document.getElementById('form-title').innerText = "Modificar Tarea Registrada";
-            
-            document.getElementById('form-estado').value = t.estado;
-            document.getElementById('form-fecha').value = t.fecha;
-            autofillDateInfo();
-            
-            document.getElementById('form-categoria').value = t.categoria;
-            updateSubcategories();
-            document.getElementById('form-subcategoria').value = t.subcategoria;
-            updateActivities();
-            document.getElementById('form-actividad').value = t.actividad;
-            
-            if (parseFloat(t.totalHoras) === 8.4) {
-                lockForStandardHours(8.4);
-            } else {
-                unlockHours();
-                document.getElementById('form-horainicio').value = t.horaInicio;
-                filterEndHours();
-                document.getElementById('form-horafin').value = t.horaFin;
-            }
-            document.getElementById('form-observaciones').value = t.observaciones || '';
+        /** Función para eliminar un registro de la tabla y de Google Sheets */
+        async function deleteTask(rowIndex) {
+            if (!confirm("¿Estás seguro de que deseas eliminar este registro de la base de datos?")) return;
 
-            switchTab('form');
+            showLoading("Eliminando registro de la nube...");
+
+            try {
+                const payload = new URLSearchParams({
+                    action: "deleteTask",
+                    rowIndex: rowIndex
+                });
+
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    body: payload
+                });
+                const result = await res.json();
+                hideLoading();
+
+                if (result.status === "success") {
+                    alert("¡Registro eliminado con éxito!");
+                    await loadCloudDatabase();
+                    renderWeeksTasks();
+                    updateProgressView();
+                } else {
+                    alert("Error al eliminar el registro.");
+                }
+            } catch (e) {
+                hideLoading();
+                console.error("Error de red:", e);
+                alert("No se pudo conectar con el servidor para eliminar.");
+            }
         }
 
         function resetFormToNew() {
@@ -780,7 +778,6 @@
             return Math.ceil(day / 7);
         }
 
-        /** Conteo de días hábiles (Lunes a Viernes) transcurridos del mes actual */
         function countBusinessDaysUntilNow() {
             const year = liveServerDate.getFullYear();
             const month = liveServerDate.getMonth();
@@ -797,7 +794,6 @@
             return count;
         }
 
-        /** Renderiza el historial de tareas en la Fase 1.3 agrupadas por semanas */
         function renderWeeksTasks() {
             const container = document.getElementById('weeks-container');
             container.innerHTML = '';
@@ -811,10 +807,9 @@
 
             const weeksMap = {};
             myTasks.forEach((t) => {
-                const originalIndex = userTasks.indexOf(t);
                 const weekNum = getWeekOfMonth(t.fecha);
                 if (!weeksMap[weekNum]) weeksMap[weekNum] = [];
-                weeksMap[weekNum].push({ ...t, originalIndex });
+                weeksMap[weekNum].push(t);
             });
 
             Object.keys(weeksMap).sort().forEach(weekNum => {
@@ -833,9 +828,9 @@
                             <td class="p-3 border-b">${t.subcategoria}</td>
                             <td class="p-3 border-b">${t.actividad}</td>
                             <td class="p-3 border-b text-center">
-                                <button onclick="editTask(${t.originalIndex})" title="Modificar tarea" class="bg-cyan-50 hover:bg-cyan-100 text-cyan-600 p-2 rounded-lg transition inline-flex items-center">
+                                <button onclick="deleteTask(${t.rowIndex})" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
                                 </button>
                             </td>
@@ -859,7 +854,7 @@
                                         <th class="p-3 border-b">Categoría</th>
                                         <th class="p-3 border-b">Subcategoría</th>
                                         <th class="p-3 border-b">Actividad / Proceso</th>
-                                        <th class="p-3 border-b text-center">Modificar</th>
+                                        <th class="p-3 border-b text-center">Eliminar</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">
@@ -872,7 +867,6 @@
             });
         }
 
-        /** Actualiza los indicadores de la Fase 1.2 calculando el cumplimiento y colores */
         function updateProgressView() {
             const businessDaysTarget = countBusinessDaysUntilNow();
             const myTasks = userTasks.filter(t => t.nombre === currentUser.nombre);
@@ -932,7 +926,6 @@
             });
         }
 
-        /** Renderiza el panel gerencial exclusivo para administradores con ranking y alertas */
         function renderAdminDashboard() {
             const businessDaysTarget = countBusinessDaysUntilNow();
             const rankingBody = document.getElementById('admin-ranking-body');

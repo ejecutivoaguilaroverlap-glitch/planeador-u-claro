@@ -263,7 +263,7 @@
     <!-- ========================================================================= -->
     <script>
         // Nueva URL API actualizada
-        const API_URL = "https://script.google.com/macros/s/AKfycbyUB7ym8OShp-JruiwvOtZHfgBYTUdkSIqZJERSZZlQY5_mKit275Q3jrYH0OFSsSI-/exec";
+        const API_URL = "https://script.google.com/macros/s/AKfycbxV_YibBCYvacFdKh56BYLxb8-3YHxVe_VaiY-QMUPC9thrDa3hBIKPPh_2rRxZ5pP8bA/exec";
 
         let dbPersonas = {};
         let dbListas = {};
@@ -324,95 +324,84 @@
 
         async function loadCloudDatabase() {
             try {
-                const response = await fetch(`${API_URL}?action=getDatabase`);
+                const response = await fetch(`${API_URL}?action=getDatabase`, { method: "GET", cache: "no-store" });
+                if (!response.ok) {
+                    throw new Error(`Apps Script respondió HTTP ${response.status}`);
+                }
                 const data = await response.json();
-                
-                if (data.status === "success") {
-                    dbPersonas = {};
-                    if (data.personas && data.personas.length > 1) {
-                        for (let i = 1; i < data.personas.length; i++) {
-                            const row = data.personas[i];
-                            if (row[0] !== undefined && row[0] !== "") {
-                                let rawRol = String(row[2] || "").trim().toLowerCase();
-                                let rolDefinitivo = (rawRol === "admin" || rawRol === "administrador") ? "Admin" : "Entrenador";
+                if (data.status !== "success") {
+                    throw new Error(data.message || "Apps Script no devolvió status success");
+                }
 
-                                dbPersonas[String(row[0]).trim()] = {
-                                    cedula: String(row[0]).trim(),
-                                    nombre: row[1] || "",
-                                    rol: rolDefinitivo,
-                                    region: row[3] || "",
-                                    ciudad: row[4] || "",
-                                    canal: row[5] || ""
-                                };
-                            }
-                        }
-                    }
+                dbPersonas = {};
+                if (Array.isArray(data.personas) && data.personas.length > 1) {
+                    for (let i = 1; i < data.personas.length; i++) {
+                        const row = data.personas[i];
+                        if (row[0] !== undefined && row[0] !== "") {
+                            const rawRol = String(row[2] || "Entrenador").trim();
+                            const rolNormalizado = rawRol.toLowerCase();
+                            const rolDefinitivo = (rolNormalizado === "admin" || rolNormalizado === "administrador")
+                                ? "Admin"
+                                : rawRol;
 
-                    dbListas = {};
-                    const cats = data.categorias || [];
-                    const subs = data.subcategorias || [];
-                    const acts = data.actividades || [];
-                    
-                    let ultimaCatValida = "";
-                    let ultimaSubValida = "";
-                    
-                    const maxLength = Math.max(cats.length, subs.length, acts.length);
-                    for (let i = 0; i < maxLength; i++) {
-                        let cat = cats[i] && cats[i][0] ? String(cats[i][0]).trim() : "";
-                        let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
-                        let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
-
-                        if (!cat && sub && ultimaCatValida) cat = ultimaCatValida;
-                        else if (cat) ultimaCatValida = cat;
-
-                        if (!sub && act && ultimaSubValida) sub = ultimaSubValida;
-                        else if (sub) ultimaSubValida = sub;
-
-                        if (cat && !dbListas[cat]) dbListas[cat] = {};
-                        if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
-                        if (cat && sub && act && !dbListas[cat][sub].includes(act)) {
-                            dbListas[cat][sub].push(act);
-                        }
-                    }
-
-                    populateCategorySelect();
-
-                    userTasks = [];
-                    if (data.registros && data.registros.length > 1) {
-                        for (let i = 1; i < data.registros.length; i++) {
-                            const r = data.registros[i];
-                            if (r[2]) {
-                                userTasks.push({
-                                    rowIndex: i + 1, // Fila real en Google Sheets
-                                    estado: r[0],
-                                    codRef: r[1],
-                                    fecha: r[2],
-                                    mes: r[3],
-                                    anio: r[4],
-                                    dia: r[5],
-                                    nombre: r[6],
-                                    rol: r[7],
-                                    region: r[8],
-                                    ciudad: r[9],
-                                    canal: r[10],
-                                    categoria: r[11],
-                                    subcategoria: r[12],
-                                    actividad: r[13],
-                                    horaInicio: r[14],
-                                    horaFin: r[15],
-                                    totalHoras: r[16],
-                                    observaciones: r[17],
-                                    userCedula: r[6]
-                                });
-                            }
+                            dbPersonas[String(row[0]).trim()] = {
+                                cedula: String(row[0]).trim(),
+                                nombre: String(row[1] || "").trim(),
+                                rol: rolDefinitivo,
+                                region: row[3] || "",
+                                ciudad: row[4] || "",
+                                canal: row[5] || ""
+                            };
                         }
                     }
                 }
+
+                dbListas = {};
+                const cats = data.categorias || [];
+                const subs = data.subcategorias || [];
+                const acts = data.actividades || [];
+                let ultimaCatValida = "";
+                let ultimaSubValida = "";
+                const maxLength = Math.max(cats.length, subs.length, acts.length);
+
+                for (let i = 0; i < maxLength; i++) {
+                    let cat = cats[i] && cats[i][0] ? String(cats[i][0]).trim() : "";
+                    let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
+                    let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
+                    if (!cat && sub && ultimaCatValida) cat = ultimaCatValida;
+                    else if (cat) ultimaCatValida = cat;
+                    if (!sub && act && ultimaSubValida) sub = ultimaSubValida;
+                    else if (sub) ultimaSubValida = sub;
+                    if (cat && !dbListas[cat]) dbListas[cat] = {};
+                    if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
+                    if (cat && sub && act && !dbListas[cat][sub].includes(act)) dbListas[cat][sub].push(act);
+                }
+                populateCategorySelect();
+
+                userTasks = [];
+                if (Array.isArray(data.registros) && data.registros.length > 1) {
+                    for (let i = 1; i < data.registros.length; i++) {
+                        const r = data.registros[i];
+                        if (r[2]) {
+                            const nombreRegistro = String(r[6] || "").trim();
+                            const personaRegistro = Object.values(dbPersonas).find(p => p.nombre.trim() === nombreRegistro);
+                            userTasks.push({
+                                rowIndex: i + 1,
+                                estado: r[0], codRef: r[1], fecha: r[2], mes: r[3], anio: r[4], dia: r[5],
+                                nombre: nombreRegistro, rol: r[7], region: r[8], ciudad: r[9], canal: r[10],
+                                categoria: r[11], subcategoria: r[12], actividad: r[13], horaInicio: r[14],
+                                horaFin: r[15], totalHoras: r[16], observaciones: r[17],
+                                userCedula: personaRegistro ? personaRegistro.cedula : ""
+                            });
+                        }
+                    }
+                }
+                return true;
             } catch (err) {
                 console.error("Error cargando base de datos de la nube:", err);
+                return false;
             }
         }
-        
         loadCloudDatabase();
 
         function populateCategorySelect() {
@@ -465,9 +454,17 @@
             const user = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value.trim();
 
-            showLoading("Iniciando sesión...");
-            await loadCloudDatabase();
+            document.getElementById('login-error').classList.add('hidden');
+            showLoading("Conectando con la base de datos...");
+            const conexionCorrecta = await loadCloudDatabase();
             hideLoading();
+
+            if (!conexionCorrecta) {
+                const errorEl = document.getElementById('login-error');
+                errorEl.innerText = "No fue posible cargar la base de datos. Verifica la implementación de Apps Script e inténtalo de nuevo.";
+                errorEl.classList.remove('hidden');
+                return;
+            }
 
             if (user === pass && dbPersonas[user]) {
                 currentUser = dbPersonas[user];
@@ -505,7 +502,9 @@
                     renderWeeksTasks();
                 }
             } else {
-                document.getElementById('login-error').classList.remove('hidden');
+                const errorEl = document.getElementById('login-error');
+                errorEl.innerText = "Cédula no registrada o credenciales incorrectas.";
+                errorEl.classList.remove('hidden');
             }
         }
 
@@ -639,6 +638,15 @@
             }
         }
 
+        async function readApiResponse(response) {
+            const rawText = await response.text();
+            try {
+                return JSON.parse(rawText);
+            } catch (_) {
+                throw new Error(`Respuesta no válida de Apps Script (HTTP ${response.status}). Puede ser un problema de permisos o publicación.`);
+            }
+        }
+
         async function saveActivity(event) {
             event.preventDefault();
             const estado = document.getElementById('form-estado').value;
@@ -707,7 +715,7 @@
                     method: "POST",
                     body: payload
                 });
-                const result = await res.json();
+                const result = await readApiResponse(res);
                 hideLoading();
 
                 if (result.status === "success") {
@@ -718,12 +726,12 @@
                     updateProgressView();
                     switchTab('tasks');
                 } else {
-                    alert("Error al guardar en la nube.");
+                    alert(`Error al guardar en la nube: ${result.message || "Apps Script rechazó la operación."}`);
                 }
             } catch (e) {
                 hideLoading();
-                console.error("Error de red:", e);
-                alert("No se pudo conectar con el servidor de Google Sheets.");
+                console.error("Error guardando actividad:", e);
+                alert(`No se pudo guardar la actividad. Detalle: ${e.message || e}`);
             }
         }
 
@@ -743,7 +751,7 @@
                     method: "POST",
                     body: payload
                 });
-                const result = await res.json();
+                const result = await readApiResponse(res);
                 hideLoading();
 
                 if (result.status === "success") {
@@ -752,12 +760,12 @@
                     renderWeeksTasks();
                     updateProgressView();
                 } else {
-                    alert("Error al eliminar el registro.");
+                    alert(`Error al eliminar el registro: ${result.message || "Apps Script rechazó la operación."}`);
                 }
             } catch (e) {
                 hideLoading();
-                console.error("Error de red:", e);
-                alert("No se pudo conectar con el servidor para eliminar.");
+                console.error("Error eliminando registro:", e);
+                alert(`No se pudo eliminar el registro. Detalle: ${e.message || e}`);
             }
         }
 
@@ -971,4 +979,108 @@
                     if (dailyHoursMap[date] > 42) hasOverload = true;
                 });
 
-                teamStats
+                teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
+            });
+
+            const alertContainer = document.getElementById('admin-admin-alert-container');
+            const adminPercentage = totalGeneralTasks > 0 ? (totalAdminReunionesCount / totalGeneralTasks) * 100 : 0;
+
+            if (adminPercentage >= 35) {
+                alertContainer.classList.remove('hidden');
+                alertContainer.innerHTML = `
+                    <div class="bg-amber-950/80 border border-amber-600/50 text-amber-200 p-4 rounded-xl flex items-start space-x-3 shadow-lg">
+                        <span class="text-xl">⚠️</span>
+                        <div>
+                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa: Alto uso en Categoría Administrativo / Reuniones</h4>
+                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos. Se recomienda revisar la optimización de espacios formativos de campo.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                alertContainer.classList.add('hidden');
+            }
+
+            teamStats.sort((a, b) => b.compliance - a.compliance);
+
+            teamStats.forEach((st, idx) => {
+                const colorClass = getComplianceColorClass(st.compliance);
+
+                rankingBody.innerHTML += `
+                    <tr class="hover:bg-slate-800/50 transition">
+                        <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
+                        <td class="p-3 border-b border-slate-800 font-medium text-white">${st.nombre}</td>
+                        <td class="p-3 border-b border-slate-800">${st.uniqueDays} días</td>
+                        <td class="p-3 border-b border-slate-800 ${colorClass}">${st.compliance}%</td>
+                        <td class="p-3 border-b border-slate-800">
+                            ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso > 42h/día</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            renderTopListWithExecutantes('categoria', 'top-categories');
+            renderTopListWithExecutantes('subcategoria', 'top-subcategories');
+            renderTopListWithExecutantes('actividad', 'top-activities');
+        }
+
+        function renderTopListWithExecutantes(property, elementId) {
+            const counts = {};
+            const itemExecutantes = {};
+
+            userTasks.forEach(t => {
+                const val = t[property];
+                if (val) {
+                    counts[val] = (counts[val] || 0) + 1;
+                    if (!itemExecutantes[val]) itemExecutantes[val] = new Set();
+                    if (t.nombre) {
+                        itemExecutantes[val].add(t.nombre);
+                    }
+                }
+            });
+
+            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
+            const el = document.getElementById(elementId);
+            el.innerHTML = '';
+
+            if (sorted.length === 0) {
+                el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`;
+                return;
+            }
+
+            sorted.forEach((item, index) => {
+                const executorsList = Array.from(itemExecutantes[item] || []).join(', ');
+                
+                const li = document.createElement('li');
+                li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
+                li.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-200">${index + 1}. ${item}</span>
+                        <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
+                    </div>
+                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
+                        <p class="font-semibold text-cyan-400 mb-1">👥 Todos los ejecutivos:</p>
+                        <p class="text-slate-300 font-normal">${executorsList || 'Ninguno registrado'}</p>
+                    </div>
+                `;
+
+                let mobileTimeout = null;
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const tooltip = li.querySelector('div.absolute');
+                    if (tooltip) {
+                        tooltip.classList.remove('hidden');
+                        tooltip.classList.add('block');
+                        if (mobileTimeout) clearTimeout(mobileTimeout);
+                        mobileTimeout = setTimeout(() => {
+                            tooltip.classList.remove('block');
+                            tooltip.classList.add('hidden');
+                        }, 8000);
+                    }
+                });
+
+                el.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>

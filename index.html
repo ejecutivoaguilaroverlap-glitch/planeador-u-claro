@@ -104,7 +104,7 @@
                     <span class="text-gray-300">|</span>
                     <span class="text-base font-bold overlap-theme-text">OVERLAP</span>
                 </div>
-                <span class="text-xs font-semibold text-gray-600 border-l pl-3 hidden sm:inline">Universidad Claro - Planificador EE OVERLAP</span>
+                <span class="text-xs font-semibold text-gray-600 border-l pl-3 hidden sm:inline">Universidad Claro - Planificador EE</span>
             </div>
             <div class="flex items-center space-x-4">
                 <span id="user-display-name" class="text-sm font-medium text-gray-800"></span>
@@ -135,19 +135,27 @@
                     <div id="admin-admin-alert-container" class="mb-6 hidden"></div>
                     
                     <div class="mb-8">
-                        <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center space-x-2">
-                            <span>🏆 Ranking de Cumplimiento & Emisión de Alertas</span>
-                        </h3>
+                        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3">
+                            <h3 class="font-bold text-slate-200 text-sm flex items-center space-x-2">
+                                <span>🏆 Ranking de Cumplimiento & Emisión de Alertas</span>
+                            </h3>
+                            <!-- BOTÓN DE ALERTA GENERAL -->
+                            <button onclick="enviarAlertaGeneral()" class="mt-3 sm:mt-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-md transition-colors flex items-center border border-indigo-400">
+                                📢 Enviar Recordatorio General
+                            </button>
+                        </div>
+
                         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
+                                    <!-- SE AGREGA LA COLUMNA EXPLICITAMENTE EN EL HTML -->
                                     <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase font-mono">
-                                        <th class="p-3 border-b border-slate-700">#</th>
+                                        <th class="p-3 border-b border-slate-700">Posición</th>
                                         <th class="p-3 border-b border-slate-700">Entrenador</th>
-                                        <th class="p-3 border-b border-slate-700">Días</th>
+                                        <th class="p-3 border-b border-slate-700">Días Diligenciados</th>
                                         <th class="p-3 border-b border-slate-700">Cumplimiento</th>
                                         <th class="p-3 border-b border-slate-700 text-center">Alerta Horas</th>
-                                        <th class="p-3 border-b border-slate-700">Enviar Alerta a Ejecutivo</th>
+                                        <th class="p-3 border-b border-slate-700 text-center">Acciones de Alerta</th>
                                     </tr>
                                 </thead>
                                 <tbody id="admin-ranking-body" class="divide-y divide-slate-800 text-slate-300"></tbody>
@@ -192,18 +200,9 @@
                         <div class="flex-grow max-w-xs">
                             <label class="block text-xs font-semibold text-cyan-400 mb-1">Mes de Análisis</label>
                             <select id="chart-filter-month" onchange="renderWeeklyCharts()" class="w-full px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-950 text-white focus:outline-none focus:border-cyan-500">
-                                <option value="0">Enero</option>
-                                <option value="1">Febrero</option>
-                                <option value="2">Marzo</option>
-                                <option value="3">Abril</option>
-                                <option value="4">Mayo</option>
-                                <option value="5">Junio</option>
-                                <option value="6">Julio</option>
-                                <option value="7">Agosto</option>
-                                <option value="8">Septiembre</option>
-                                <option value="9">Octubre</option>
-                                <option value="10">Noviembre</option>
-                                <option value="11">Diciembre</option>
+                                <option value="0">Enero</option><option value="1">Febrero</option><option value="2">Marzo</option><option value="3">Abril</option>
+                                <option value="4">Mayo</option><option value="5">Junio</option><option value="6">Julio</option><option value="7">Agosto</option>
+                                <option value="8">Septiembre</option><option value="9">Octubre</option><option value="10">Noviembre</option><option value="11">Diciembre</option>
                             </select>
                         </div>
                     </div>
@@ -353,7 +352,9 @@
             document.getElementById('loading-overlay').classList.remove('hidden');
         }
 
-        function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
+        function hideLoading() { 
+            document.getElementById('loading-overlay').classList.add('hidden'); 
+        }
 
         function getComplianceColorClass(val) {
             if (val <= 70) return "text-red-500 font-black";
@@ -407,12 +408,15 @@
                 const cats = data.categorias || []; const subs = data.subcategorias || []; const acts = data.actividades || [];
                 let uCat = ""; let uSub = "";
                 const maxLength = Math.max(cats.length, subs.length, acts.length);
+                
                 for (let i = 0; i < maxLength; i++) {
                     let cat = cats[i] && cats[i][0] ? String(cats[i][0]).trim() : "";
                     let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
                     let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
+                    
                     if (!cat && sub && uCat) cat = uCat; else if (cat) uCat = cat;
                     if (!sub && act && uSub) sub = uSub; else if (sub) uSub = sub;
+                    
                     if (cat && !dbListas[cat]) dbListas[cat] = {};
                     if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
                     if (cat && sub && act && !dbListas[cat][sub].includes(act)) dbListas[cat][sub].push(act);
@@ -436,8 +440,12 @@
                     }
                 }
                 return true;
-            } catch (err) { console.error(err); return false; }
+            } catch (err) { 
+                console.error(err); 
+                return false; 
+            }
         }
+        
         loadCloudDatabase();
 
         function populateCategorySelect() {
@@ -459,6 +467,7 @@
                 }
             }
         }
+        
         populateStartHours();
 
         function filterEndHours() {
@@ -466,8 +475,10 @@
             const endSelect = document.getElementById('form-horafin');
             if (!endSelect || !startVal) return;
             endSelect.innerHTML = '<option value="">Seleccione hora fin...</option>';
+            
             const [sh, sm] = startVal.split(':').map(Number);
             const startTotalMinutes = sh * 60 + sm;
+            
             for (let h = 6; h <= 18; h++) {
                 for (let m of [0, 30]) {
                     if (h === 18 && m > 0) break;
@@ -486,10 +497,15 @@
             const pass = document.getElementById('login-pass').value.trim();
 
             document.getElementById('login-error').classList.add('hidden');
-            showLoading("Conectando...");
+            showLoading("Conectando con la base de datos...");
             const ok = await loadCloudDatabase();
             hideLoading();
-            if (!ok) { document.getElementById('login-error').innerText = "Error cargando BD."; document.getElementById('login-error').classList.remove('hidden'); return; }
+            
+            if (!ok) { 
+                document.getElementById('login-error').innerText = "Error cargando BD."; 
+                document.getElementById('login-error').classList.remove('hidden'); 
+                return; 
+            }
 
             if (user === pass && dbPersonas[user]) {
                 currentUser = dbPersonas[user]; currentUser.cedula = user;
@@ -526,8 +542,8 @@
                     updateProgressView();
                     renderWeeksTasks();
                     
-                    // ======== MAGIA: DISPARA LAS ALERTAS AL INICIAR SESIÓN =======
-                    setTimeout(verificarAlertasParaEntrenador, 300);
+                    // Disparar las alertas solo para entrenadores
+                    setTimeout(verificarAlertasParaEntrenador, 500);
                 }
             } else {
                 document.getElementById('login-error').innerText = "Credenciales incorrectas.";
@@ -575,11 +591,10 @@
             const tipoAlerta = document.getElementById(selectId).value;
             if(!confirm(`¿Seguro que deseas enviar la alerta a ${nombreEntrenador}?`)) return;
 
-            // Creamos una "Tarea Falsa" que actúa como un sobre de mensaje para el entrenador
             const payload = new URLSearchParams({
                 action: "saveTask", estado: "ALERTA", codRef: "ALERTA", 
                 fecha: new Date().toISOString().split('T')[0],
-                mes: "N/A", anio: "2026", dia: "N/A", nombre: nombreEntrenador,
+                mes: "N/A", anio: new Date().getFullYear(), dia: "N/A", nombre: nombreEntrenador,
                 rol: "Entrenador", region: "N/A", ciudad: "N/A", canal: "N/A",
                 categoria: "ALERTA_ADMIN", subcategoria: "SISTEMA", actividad: tipoAlerta,
                 horaInicio: "00:00", horaFin: "00:00", totalHoras: "0", observaciones: "Enviado por Admin"
@@ -592,28 +607,66 @@
                 hideLoading();
                 if (result.status === "success") {
                     alert("¡Alerta encolada exitosamente!");
-                    await loadCloudDatabase(); // Recargamos para que el admin también la tenga registrada
+                    await loadCloudDatabase(); // Recargamos para que el admin la tenga
                 } else { alert("Error: " + result.message); }
             } catch (e) { hideLoading(); alert("Error enviando alerta."); }
         }
 
+        async function enviarAlertaGeneral() {
+            if(!confirm(`¿Seguro que deseas enviar una alerta general a TODOS los ejecutivos para recordar el diligenciamiento?`)) return;
+            
+            // Creamos la alerta con nombre "TODOS"
+            const payload = new URLSearchParams({
+                action: "saveTask", estado: "ALERTA", codRef: "ALERTA", 
+                fecha: new Date().toISOString().split('T')[0],
+                mes: "N/A", anio: new Date().getFullYear(), dia: "N/A", nombre: "TODOS",
+                rol: "Entrenador", region: "N/A", ciudad: "N/A", canal: "N/A",
+                categoria: "ALERTA_ADMIN", subcategoria: "SISTEMA", actividad: "recordatorio",
+                horaInicio: "00:00", horaFin: "00:00", totalHoras: "0", observaciones: "Alerta General"
+            });
+
+            showLoading("Enviando alerta general a la nube...");
+            try {
+                const res = await fetch(API_URL, { method: "POST", body: payload });
+                const result = await readApiResponse(res);
+                hideLoading();
+                if (result.status === "success") {
+                    alert("¡Alerta general enviada a todos!");
+                    await loadCloudDatabase();
+                } else { alert("Error: " + result.message); }
+            } catch (e) { hideLoading(); alert("Error enviando alerta general."); }
+        }
+
         function verificarAlertasParaEntrenador() {
-            // Buscamos todas las alertas dirigidas a este usuario
-            const misAlertas = userTasks.filter(t => t.nombre === currentUser.nombre && t.categoria === "ALERTA_ADMIN");
+            // Buscamos alertas dirigidas a su nombre o generales ("TODOS")
+            const misAlertas = userTasks.filter(t => 
+                (t.nombre === currentUser.nombre || t.nombre === "TODOS") && 
+                t.categoria === "ALERTA_ADMIN"
+            );
+            
             if (misAlertas.length === 0) return;
 
-            // Ordenamos para tomar la más reciente (la de mayor rowIndex)
+            // Ordenamos para tomar la más reciente 
             misAlertas.sort((a, b) => b.rowIndex - a.rowIndex);
-            const alertaNueva = misAlertas[0];
             
-            // Creamos un ID único para esta alerta en el almacenamiento local del navegador
-            const alertIdStorage = `vista_alerta_${alertaNueva.rowIndex}`;
-            let vistas = parseInt(localStorage.getItem(alertIdStorage) || "0");
-            
-            // Si el entrenador la ha visto menos de 3 veces (El inicio de hoy + 2 más)
-            if (vistas < 3) {
-                ejecutarAnimacionAlerta(alertaNueva.actividad);
-                localStorage.setItem(alertIdStorage, vistas + 1);
+            // Buscamos la alerta más reciente que no haya superado las 3 vistas
+            let alertaMostrar = null;
+            let vistasActuales = 0;
+            let alertIdStorage = "";
+
+            for (let alerta of misAlertas) {
+                alertIdStorage = `vista_alerta_${alerta.rowIndex}`;
+                vistasActuales = parseInt(localStorage.getItem(alertIdStorage) || "0");
+                
+                if (vistasActuales < 3) {
+                    alertaMostrar = alerta;
+                    break;
+                }
+            }
+
+            if (alertaMostrar) {
+                ejecutarAnimacionAlerta(alertaMostrar.actividad);
+                localStorage.setItem(alertIdStorage, vistasActuales + 1);
             }
         }
 
@@ -629,7 +682,6 @@
                 texto.innerText = '¡Felicidades, estás al día!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-emerald-900/95 text-white transition-opacity duration-500";
                 
-                // Lanza confetti
                 var duration = 3000; var end = Date.now() + duration;
                 (function frame() {
                     confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
@@ -644,7 +696,6 @@
                 texto.innerText = '¡Atraso en el Planeador!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-red-950/95 text-white transition-opacity duration-500";
                 
-                // Muestra SVG de pantalla quebrada
                 const cristal = document.getElementById('cristal-roto');
                 cristal.classList.remove('hidden');
                 
@@ -658,7 +709,6 @@
                 texto.innerText = '¡Ánimo, te falta poco!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-blue-900/95 text-white transition-opacity duration-500";
                 
-                // Efecto de vibración en la pantalla entera
                 document.body.classList.add('animate-vibrate');
                 
                 setTimeout(() => {
@@ -666,10 +716,17 @@
                     document.body.classList.remove('animate-vibrate');
                 }, 4000);
             }
+            else if (tipo === 'recordatorio') {
+                emoji.innerText = '📅';
+                texto.innerText = '¡RECUERDA DILIGENCIAR TU PLANEADOR!';
+                modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-indigo-900/95 text-white transition-opacity duration-500";
+                
+                setTimeout(() => modal.classList.add('hidden'), 4000);
+            }
         }
 
         // ==============================================================
-        // VISTAS ADMIN: DASHBOARD Y GRÁFICAS (Excluyendo las Alertas Falsas)
+        // VISTAS ADMIN: DASHBOARD Y GRÁFICAS (Excluyendo las Alertas)
         // ==============================================================
 
         function populateAdminFilters() {
@@ -689,7 +746,7 @@
             const container = document.getElementById('charts-container'); container.innerHTML = '';
 
             const filteredTasks = userTasks.filter(t => {
-                // FILTRO CLAVE: Excluir las "Alertas" para que no dañen las estadísticas
+                // FILTRO: Excluir las "Alertas" para que no dañen las gráficas
                 if(t.categoria === "ALERTA_ADMIN") return false;
 
                 const matchExec = (selectedExec === 'todos' || t.nombre === selectedExec);
@@ -731,8 +788,19 @@
 
                 const newChart = new Chart(document.getElementById(canvasId).getContext('2d'), {
                     type: 'bar',
-                    data: { labels: Object.keys(week.categorias), datasets: [{ label: 'Horas', data: Object.values(week.categorias), backgroundColor: '#00A9CE', borderRadius: 4 }] },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
+                    data: { 
+                        labels: Object.keys(week.categorias), 
+                        datasets: [{ label: 'Horas', data: Object.values(week.categorias), backgroundColor: '#00A9CE', borderRadius: 4 }] 
+                    },
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { legend: { display: false } }, 
+                        scales: { 
+                            y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, 
+                            x: { ticks: { color: '#94a3b8' }, grid: { display: false } } 
+                        } 
+                    }
                 });
                 chartInstances.push(newChart);
             });
@@ -740,15 +808,20 @@
 
         function renderAdminDashboard() {
             const businessDaysTarget = countBusinessDaysUntilNow();
-            const rankingBody = document.getElementById('admin-ranking-body'); rankingBody.innerHTML = '';
+            const rankingBody = document.getElementById('admin-ranking-body'); 
+            rankingBody.innerHTML = '';
+            
             const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
-            let teamStats = []; let totalAdminReunionesCount = 0;
-            const currentMonthIndex = liveServerDate.getMonth(); const currentYearNum = liveServerDate.getFullYear();
+            let teamStats = []; 
+            let totalAdminReunionesCount = 0;
+            const currentMonthIndex = liveServerDate.getMonth(); 
+            const currentYearNum = liveServerDate.getFullYear();
 
             // Excluir "ALERTA_ADMIN" de los reportes gerenciales
             const monthTasks = userTasks.filter(t => {
                 if(t.categoria === "ALERTA_ADMIN") return false;
-                let cleanStr = String(t.fecha).split('T')[0]; let parts = cleanStr.split('-');
+                let cleanStr = String(t.fecha).split('T')[0]; 
+                let parts = cleanStr.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
                     let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
                     return dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum;
@@ -762,6 +835,7 @@
                 const pTasks = monthTasks.filter(t => t.nombre === p.nombre);
                 const uniqueDays = [...new Set(pTasks.map(t => String(t.fecha).split('T')[0]))].length;
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
+                
                 const dailyHoursMap = {};
                 pTasks.forEach(t => {
                     const cleanD = formatDateClean(t.fecha);
@@ -769,16 +843,19 @@
                     dailyHoursMap[cleanD] += parseFloat(t.totalHoras);
                     if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") totalAdminReunionesCount++;
                 });
+                
                 let hasOverload = false;
                 Object.keys(dailyHoursMap).forEach(date => { if (dailyHoursMap[date] > 42) hasOverload = true; });
+                
                 teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
             });
 
             teamStats.sort((a, b) => b.compliance - a.compliance);
+            
             teamStats.forEach((st, idx) => {
                 const colorClass = getComplianceColorClass(st.compliance);
                 
-                // SE AGREGA LA COLUMNA DE SELECTOR Y BOTÓN DE ALERTA
+                // TABLA DE RANKING CON BOTÓN INDIVIDUAL DE ALERTA
                 rankingBody.innerHTML += `
                     <tr class="hover:bg-slate-800/50 transition border-b border-slate-700/50">
                         <td class="p-3 font-bold text-slate-400">#${idx + 1}</td>
@@ -788,12 +865,12 @@
                         <td class="p-3 text-center">
                             ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
                         </td>
-                        <td class="p-3">
-                            <div class="flex items-center space-x-2">
+                        <td class="p-3 text-center">
+                            <div class="flex items-center justify-center space-x-2">
                                 <select id="alerta-sel-${idx}" class="text-[11px] font-semibold text-slate-900 p-1.5 rounded bg-slate-200 border-none focus:ring-0">
-                                    <option value="felicidades">🎉 Felicidades (Al día)</option>
-                                    <option value="atraso">🤬 Atraso (Pantalla Rota)</option>
-                                    <option value="animo">🥺 Ánimo (Vibración)</option>
+                                    <option value="felicidades">🎉 Felicidades</option>
+                                    <option value="atraso">🤬 Atraso</option>
+                                    <option value="animo">🥺 Ánimo</option>
                                 </select>
                                 <button onclick="enviarAlertaAdmin('${st.nombre}', 'alerta-sel-${idx}')" class="bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] px-3 py-1.5 rounded transition-colors font-bold shadow-md">Enviar</button>
                             </div>
@@ -808,19 +885,22 @@
         }
 
         // ==============================================================
-        // VISTAS ENTRENADOR Y FORMULARIOS (Excluyendo Alertas Falsas)
+        // VISTAS ENTRENADOR Y FORMULARIOS (Excluyendo Alertas)
         // ==============================================================
 
         function renderWeeksTasks() {
-            const container = document.getElementById('weeks-container'); container.innerHTML = '';
-            const currentMonth = liveServerDate.getMonth(); const currentYear = liveServerDate.getFullYear();
+            const container = document.getElementById('weeks-container'); 
+            container.innerHTML = '';
+            const currentMonth = liveServerDate.getMonth(); 
+            const currentYear = liveServerDate.getFullYear();
 
             const myTasks = userTasks.filter(t => {
                 if (t.nombre !== currentUser.nombre) return false;
                 // Excluir "ALERTA_ADMIN" del historial visual
                 if(t.categoria === "ALERTA_ADMIN") return false;
 
-                let cleanStr = String(t.fecha).split('T')[0]; let parts = cleanStr.split('-');
+                let cleanStr = String(t.fecha).split('T')[0]; 
+                let parts = cleanStr.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
                     let taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
                     return taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear;
@@ -828,10 +908,18 @@
                 return false;
             });
 
-            if (myTasks.length === 0) { container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas en este mes.</div>`; return; }
+            if (myTasks.length === 0) { 
+                container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas en este mes.</div>`; 
+                return; 
+            }
 
             const weeksMap = {};
-            myTasks.forEach((t) => { const weekNum = getWeekOfMonth(t.fecha); if (!weeksMap[weekNum]) weeksMap[weekNum] = []; weeksMap[weekNum].push(t); });
+            myTasks.forEach((t) => { 
+                const weekNum = getWeekOfMonth(t.fecha); 
+                if (!weeksMap[weekNum]) weeksMap[weekNum] = []; 
+                weeksMap[weekNum].push(t); 
+            });
+            
             Object.keys(weeksMap).sort().forEach(weekNum => {
                 let rowsHtml = '';
                 weeksMap[weekNum].forEach(t => {
@@ -852,7 +940,8 @@
 
         function updateProgressView() {
             const businessDaysTarget = countBusinessDaysUntilNow();
-            const currentMonthIndex = liveServerDate.getMonth(); const currentYearNum = liveServerDate.getFullYear();
+            const currentMonthIndex = liveServerDate.getMonth(); 
+            const currentYearNum = liveServerDate.getFullYear();
 
             const myTasks = userTasks.filter(t => {
                 if (t.nombre !== currentUser.nombre || t.categoria === "ALERTA_ADMIN") return false;
@@ -868,12 +957,19 @@
             document.getElementById('stat-days').innerText = `${uniqueDatesWorked.length} / ${businessDaysTarget} hábiles`;
             const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDatesWorked.length / businessDaysTarget) * 100)) : 0;
             const statPercentageEl = document.getElementById('stat-percentage');
-            statPercentageEl.innerText = compliance + '%'; statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
+            statPercentageEl.innerText = compliance + '%'; 
+            statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
 
             const weeklyHoursMap = {};
             myTasks.forEach(t => { const w = getWeekOfMonth(t.fecha); if (!weeklyHoursMap[w]) weeklyHoursMap[w] = 0; weeklyHoursMap[w] += parseFloat(t.totalHoras); });
-            const weeklyContainer = document.getElementById('stat-weekly-hours'); weeklyContainer.innerHTML = '';
-            if (Object.keys(weeklyHoursMap).length === 0) { weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas en este mes</span>`; return; }
+            const weeklyContainer = document.getElementById('stat-weekly-hours'); 
+            weeklyContainer.innerHTML = '';
+            
+            if (Object.keys(weeklyHoursMap).length === 0) { 
+                weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas en este mes</span>`; 
+                return; 
+            }
+            
             Object.keys(weeklyHoursMap).sort().forEach(w => {
                 const hrs = weeklyHoursMap[w];
                 let alertHtml = hrs > 42 ? `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: (${hrs.toFixed(1)} hrs)</div>` : '';
@@ -891,35 +987,51 @@
                 document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales"; lockForStandardHours(8.4);
             } else unlockHours();
         }
+        
         function autofillDateInfo() {
-            const dateVal = document.getElementById('form-fecha').value; if (!dateVal) return;
+            const dateVal = document.getElementById('form-fecha').value; 
+            if (!dateVal) return;
             const dateObj = new Date(dateVal + 'T00:00:00');
             document.getElementById('auto-mes').innerText = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][dateObj.getMonth()];
             document.getElementById('auto-anio').innerText = dateObj.getFullYear();
             document.getElementById('auto-dia').innerText = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
         }
+        
         function handleCategoryChange() { updateSubcategories(); unlockHours(); }
+        
         function handleSubcategoryChange() {
             updateActivities();
             const ausencias = ["Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"];
-            if (document.getElementById('form-categoria').value === "Ausencias y Permisos Laborales" || ausencias.includes(document.getElementById('form-subcategoria').value)) lockForStandardHours(8.4); else unlockHours();
+            if (document.getElementById('form-categoria').value === "Ausencias y Permisos Laborales" || ausencias.includes(document.getElementById('form-subcategoria').value)) {
+                lockForStandardHours(8.4); 
+            } else {
+                unlockHours();
+            }
         }
+        
         function lockForStandardHours(hoursValue) {
             document.getElementById('hours-container').innerHTML = `<div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center"><span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span><input type="hidden" id="form-horainicio" value="08:00"><input type="hidden" id="form-horafin" value="16:24"></div>`;
         }
+        
         function unlockHours() {
             if (document.getElementById('hours-container').querySelector('input[type="hidden"]')) {
                 document.getElementById('hours-container').innerHTML = `<div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label><select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select></div><div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label><select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white"><option value="">Seleccione hora inicio primero...</option></select></div>`;
                 populateStartHours();
             }
         }
+        
         function updateSubcategories() {
-            const cat = document.getElementById('form-categoria').value; const subSelect = document.getElementById('form-subcategoria');
-            subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>'; document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
+            const cat = document.getElementById('form-categoria').value; 
+            const subSelect = document.getElementById('form-subcategoria');
+            subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>'; 
+            document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
             if (cat && dbListas[cat]) Object.keys(dbListas[cat]).forEach(sub => subSelect.innerHTML += `<option value="${sub}">${sub}</option>`);
         }
+        
         function updateActivities() {
-            const cat = document.getElementById('form-categoria').value; const sub = document.getElementById('form-subcategoria').value; const actSelect = document.getElementById('form-actividad');
+            const cat = document.getElementById('form-categoria').value; 
+            const sub = document.getElementById('form-subcategoria').value; 
+            const actSelect = document.getElementById('form-actividad');
             actSelect.innerHTML = '<option value="">Seleccione actividad...</option>';
             if (cat && sub && dbListas[cat][sub]) dbListas[cat][sub].forEach(act => actSelect.innerHTML += `<option value="${act}">${act}</option>`);
         }
@@ -933,13 +1045,17 @@
             event.preventDefault();
             let totalHoras = 0; let horaInicio = ""; let horaFin = "";
             const hiddenStart = document.getElementById('form-horainicio');
-            if (hiddenStart && hiddenStart.type === "hidden") { totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24"; } 
-            else {
-                horaInicio = document.getElementById('form-horainicio').value; horaFin = document.getElementById('form-horafin').value;
-                const [h1, m1] = horaInicio.split(':').map(Number); const [h2, m2] = horaFin.split(':').map(Number);
+            if (hiddenStart && hiddenStart.type === "hidden") { 
+                totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24"; 
+            } else {
+                horaInicio = document.getElementById('form-horainicio').value; 
+                horaFin = document.getElementById('form-horafin').value;
+                const [h1, m1] = horaInicio.split(':').map(Number); 
+                const [h2, m2] = horaFin.split(':').map(Number);
                 totalHoras = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
                 if (totalHoras <= 0) { alert("La hora final debe ser mayor a la hora de inicio."); return; }
             }
+            
             const payload = new URLSearchParams({
                 action: "saveTask", estado: document.getElementById('form-estado').value, codRef: document.getElementById('form-estado').value,
                 fecha: document.getElementById('form-fecha').value, mes: document.getElementById('auto-mes').innerText, anio: document.getElementById('auto-anio').innerText, dia: document.getElementById('auto-dia').innerText,
@@ -947,10 +1063,20 @@
                 categoria: document.getElementById('form-categoria').value, subcategoria: document.getElementById('form-subcategoria').value, actividad: document.getElementById('form-actividad').value,
                 horaInicio: horaInicio, horaFin: horaFin, totalHoras: totalHoras.toFixed(1), observaciones: document.getElementById('form-observaciones').value
             });
+            
             showLoading("Guardando...");
             try {
-                const res = await fetch(API_URL, { method: "POST", body: payload }); const result = await readApiResponse(res); hideLoading();
-                if (result.status === "success") { alert("¡Guardado exitoso!"); await loadCloudDatabase(); resetFormToNew(); renderWeeksTasks(); updateProgressView(); switchTab('tasks'); } else { alert(`Error: ${result.message}`); }
+                const res = await fetch(API_URL, { method: "POST", body: payload }); 
+                const result = await readApiResponse(res); 
+                hideLoading();
+                if (result.status === "success") { 
+                    alert("¡Guardado exitoso!"); 
+                    await loadCloudDatabase(); 
+                    resetFormToNew(); 
+                    renderWeeksTasks(); 
+                    updateProgressView(); 
+                    switchTab('tasks'); 
+                } else { alert(`Error: ${result.message}`); }
             } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
         }
 
@@ -960,27 +1086,82 @@
             try {
                 const res = await fetch(API_URL, { method: "POST", body: new URLSearchParams({ action: "deleteTask", rowIndex: rowIndex }) });
                 const result = await readApiResponse(res); hideLoading();
-                if (result.status === "success") { alert("¡Eliminado!"); await loadCloudDatabase(); renderWeeksTasks(); updateProgressView(); } else { alert(`Error: ${result.message}`); }
+                if (result.status === "success") { 
+                    alert("¡Eliminado!"); 
+                    await loadCloudDatabase(); 
+                    renderWeeksTasks(); 
+                    updateProgressView(); 
+                } else { alert(`Error: ${result.message}`); }
             } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
         }
 
-        function resetFormToNew() { document.getElementById('edit-index').value = -1; document.getElementById('activity-form').reset(); document.getElementById('form-nombre').value = currentUser.nombre; unlockHours(); }
-        function getWeekOfMonth(dateString) { return Math.ceil(new Date(String(dateString).split('T')[0] + 'T00:00:00').getDate() / 7); }
+        function resetFormToNew() { 
+            document.getElementById('edit-index').value = -1; 
+            document.getElementById('activity-form').reset(); 
+            document.getElementById('form-nombre').value = currentUser.nombre; 
+            unlockHours(); 
+        }
+        
+        function getWeekOfMonth(dateString) { 
+            return Math.ceil(new Date(String(dateString).split('T')[0] + 'T00:00:00').getDate() / 7); 
+        }
+        
         function countBusinessDaysUntilNow() {
-            const year = liveServerDate.getFullYear(); const month = liveServerDate.getMonth(); const todayDate = liveServerDate.getDate(); let count = 0;
-            for (let d = 1; d <= todayDate; d++) { const dayOfWeek = new Date(year, month, d).getDay(); if (dayOfWeek >= 1 && dayOfWeek <= 5) count++; }
+            const year = liveServerDate.getFullYear(); 
+            const month = liveServerDate.getMonth(); 
+            const todayDate = liveServerDate.getDate(); 
+            let count = 0;
+            for (let d = 1; d <= todayDate; d++) { 
+                const dayOfWeek = new Date(year, month, d).getDay(); 
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) count++; 
+            }
             return count;
         }
+        
         function renderTopListWithExecutantes(property, elementId, taskArray) {
-            const counts = {}; const itemExecutantes = {};
-            taskArray.forEach(t => { if (t[property]) { counts[t[property]] = (counts[t[property]] || 0) + 1; if (!itemExecutantes[t[property]]) itemExecutantes[t[property]] = new Set(); if (t.nombre) itemExecutantes[t[property]].add(t.nombre); }});
+            const counts = {}; 
+            const itemExecutantes = {};
+            
+            taskArray.forEach(t => { 
+                if (t[property]) { 
+                    counts[t[property]] = (counts[t[property]] || 0) + 1; 
+                    if (!itemExecutantes[t[property]]) itemExecutantes[t[property]] = new Set(); 
+                    if (t.nombre) itemExecutantes[t[property]].add(t.nombre); 
+                }
+            });
+            
             const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
-            const el = document.getElementById(elementId); el.innerHTML = '';
-            if (sorted.length === 0) { el.innerHTML = `<li class="text-slate-500">Sin registros</li>`; return; }
+            const el = document.getElementById(elementId); 
+            el.innerHTML = '';
+            
+            if (sorted.length === 0) { 
+                el.innerHTML = `<li class="text-slate-500">Sin registros</li>`; 
+                return; 
+            }
+            
             sorted.forEach((item, index) => {
-                const li = document.createElement('li'); li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
-                li.innerHTML = `<div class="flex justify-between items-center"><span class="text-slate-200">${index + 1}. ${item}</span><strong class="overlap-theme-text font-mono">${counts[item]} usos</strong></div><div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed"><p class="font-semibold text-cyan-400 mb-1">👥 Ejecutivos:</p><p class="text-slate-300 font-normal">${Array.from(itemExecutantes[item] || []).join(', ') || 'Ninguno'}</p></div>`;
-                li.addEventListener('click', (e) => { e.stopPropagation(); const t = li.querySelector('div.absolute'); if (t) { t.classList.remove('hidden'); t.classList.add('block'); setTimeout(() => { t.classList.remove('block'); t.classList.add('hidden'); }, 8000); }}); el.appendChild(li);
+                const li = document.createElement('li'); 
+                li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
+                li.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-slate-200">${index + 1}. ${item}</span>
+                        <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
+                    </div>
+                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
+                        <p class="font-semibold text-cyan-400 mb-1">👥 Ejecutivos:</p>
+                        <p class="text-slate-300 font-normal">${Array.from(itemExecutantes[item] || []).join(', ') || 'Ninguno'}</p>
+                    </div>`;
+                
+                li.addEventListener('click', (e) => { 
+                    e.stopPropagation(); 
+                    const t = li.querySelector('div.absolute'); 
+                    if (t) { 
+                        t.classList.remove('hidden'); 
+                        t.classList.add('block'); 
+                        setTimeout(() => { t.classList.remove('block'); t.classList.add('hidden'); }, 8000); 
+                    }
+                }); 
+                el.appendChild(li);
             });
         }
     </script>

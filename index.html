@@ -42,7 +42,7 @@
         <h1 id="alerta-texto" class="text-5xl font-black text-center drop-shadow-lg uppercase tracking-wide px-4"></h1>
     </div>
 
-    <!-- SVG de Pantalla Quebrada (Efecto Intenso) -->
+    <!-- SVG de Pantalla Quebrada (Efecto Intenso de Impacto) -->
     <svg id="cristal-roto" class="hidden fixed inset-0 w-full h-full z-[101] pointer-events-none drop-shadow-2xl" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
         <style>
             .crack-main { stroke: rgba(255,255,255,0.95); stroke-width: 0.8; fill: none; }
@@ -52,13 +52,13 @@
             .shatter-light { fill: rgba(255,255,255,0.2); }
         </style>
         
-        <!-- Polígonos de cristal roto -->
+        <!-- Fragmentos de cristal falso -->
         <polygon class="shatter-bg" points="50,50 65,30 35,25" />
         <polygon class="shatter-light" points="50,50 75,55 60,75" />
         <polygon class="shatter-bg" points="50,50 25,65 35,85" />
         <polygon class="shatter-light" points="50,50 15,35 10,50" />
 
-        <!-- Grietas principales desde el centro -->
+        <!-- Grietas principales y profundas -->
         <path class="crack-main" d="M 50 50 L 5 5 M 50 50 L 95 10 M 50 50 L 5 50 M 50 50 L 95 60 M 50 50 L 25 100 M 50 50 L 75 100 M 50 50 L 50 0 M 50 50 L 50 100" />
         
         <!-- Ramificaciones medianas -->
@@ -68,7 +68,7 @@
         <path class="crack-thin" d="M 38 38 L 50 25 M 62 38 L 50 25 M 38 62 L 50 75 M 62 62 L 50 75 M 27 27 L 30 50 M 72 30 L 70 50 M 25 75 L 30 50 M 75 75 L 70 50 M 10 40 L 25 10 M 90 20 L 75 10 M 5 85 L 20 90 M 95 90 L 80 90" />
         <path class="crack-thin" d="M 15 15 L 30 5 M 85 15 L 70 5 M 15 85 L 30 95 M 85 85 L 70 95 M 5 25 L 20 30 M 95 25 L 80 30 M 5 75 L 20 70 M 95 75 L 80 70" />
         
-        <!-- Punto de impacto múltiple -->
+        <!-- Punto de impacto centralizado múltiple -->
         <circle cx="50" cy="50" r="2.5" fill="rgba(255,255,255,1)"/>
         <circle cx="48" cy="49" r="1.5" fill="rgba(255,255,255,0.8)"/>
         <circle cx="52" cy="51" r="1" fill="rgba(255,255,255,0.9)"/>
@@ -481,7 +481,7 @@
                 }
             }
         }
-
+        
         function filterEndHours() {
             const startVal = document.getElementById('form-horainicio').value;
             const endSelect = document.getElementById('form-horafin');
@@ -663,16 +663,16 @@
             
             if (misAlertas.length === 0) return;
             
-            // Ordenar por ID/Fila (La más reciente de primera)
+            // REGLA 1: Ordenar por ID para buscar siempre LA ÚLTIMA enviada
             misAlertas.sort((a, b) => b.rowIndex - a.rowIndex);
             
-            // REGLA: Solo evaluamos la alerta más reciente (la primera en la lista)
+            // Toma exclusivamente la alerta más reciente y descarta las viejas
             const ultimaAlerta = misAlertas[0];
             
             const alertIdStorage = `vista_alerta_${ultimaAlerta.rowIndex}`;
             let vistasActuales = parseInt(localStorage.getItem(alertIdStorage) || "0");
             
-            // REGLA: Mostrar en 2 inicios de sesión
+            // REGLA 2: Mostrar SOLO si tiene menos de 2 vistas
             if (vistasActuales < 2) {
                 ejecutarAnimacionAlerta(ultimaAlerta.actividad);
                 localStorage.setItem(alertIdStorage, vistasActuales + 1);
@@ -684,7 +684,7 @@
             const texto = document.getElementById('alerta-texto');
             const emoji = document.getElementById('alerta-emoji');
             
-            // REGLA: La alerta dura exactamente 3 segundos (3000 ms)
+            // REGLA 3: Duración de exactamente 3 segundos (3000 ms)
             const DURACION_ALERTA = 3000;
             
             modal.classList.remove('hidden');
@@ -708,6 +708,7 @@
                 texto.innerText = '¡Atraso en el Planeador!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-red-950/95 text-white transition-opacity duration-500";
                 
+                // REGLA 4: Efecto de cristal súper roto
                 const cristal = document.getElementById('cristal-roto');
                 cristal.classList.remove('hidden');
                 

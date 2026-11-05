@@ -6,6 +6,8 @@
     <title>Claro & Overlap · Planeador de Ocupación</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN para las gráficas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; }
         .overlap-theme-bg { background-color: #00A9CE; }
@@ -82,27 +84,31 @@
         </header>
 
         <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6">
-            <!-- Navegación dinámica por rol -->
+            <!-- Navegación dinámica por rol se inyecta aquí -->
         </nav>
 
         <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
 
-            <!-- PANEL GERENCIAL (ADMIN) -->
+            <!-- ========================================== -->
+            <!-- VISTAS ADMINISTRADOR (MODO OSCURO)         -->
+            <!-- ========================================== -->
+            
+            <!-- PESTAÑA ADMIN 1: DASHBOARD GENERAL -->
             <div id="view-admin-dashboard" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                         <div>
-                            <h2 class="text-xl font-bold text-white mb-1">Panel Gerencial · Modo Oscuro Ejecutivo</h2>
-                            <p class="text-xs text-slate-400">Monitoreo exclusivo administrativo, ranking, alertas por alto uso y analítica del equipo.</p>
+                            <h2 class="text-xl font-bold text-white mb-1">Panel Gerencial · Vista Global</h2>
+                            <p class="text-xs text-slate-400">Monitoreo exclusivo administrativo, ranking y analítica global del equipo en el mes en curso.</p>
                         </div>
-                        <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Perfil Administrativo</span>
+                        <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Administrador</span>
                     </div>
 
                     <div id="admin-admin-alert-container" class="mb-6 hidden"></div>
                     
                     <div class="mb-8">
                         <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center space-x-2">
-                            <span>🏆 Ranking de Cumplimiento (Días Hábiles Lunes a Viernes)</span>
+                            <span>🏆 Ranking de Cumplimiento (Mes Actual)</span>
                         </h3>
                         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
                             <table class="w-full text-left border-collapse text-sm">
@@ -137,10 +143,57 @@
                 </div>
             </div>
 
+            <!-- PESTAÑA ADMIN 2: RESUMEN SEMANAL POR EJECUTIVO (NUEVA) -->
+            <div id="view-admin-charts" class="hidden space-y-6">
+                <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-white mb-1">Resumen Semanal y Categorías</h2>
+                            <p class="text-xs text-slate-400">Seleccione un ejecutivo y el mes para visualizar sus métricas de tiempo y ocupación por semanas.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-4 mb-6 bg-slate-800/50 p-4 rounded-lg border border-slate-700/60">
+                        <div class="flex-grow max-w-sm">
+                            <label class="block text-xs font-semibold text-cyan-400 mb-1">Ejecutivo / Entrenador</label>
+                            <select id="chart-filter-exec" onchange="renderWeeklyCharts()" class="w-full px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-950 text-white focus:outline-none focus:border-cyan-500">
+                                <option value="todos">Todos los Ejecutivos</option>
+                            </select>
+                        </div>
+                        <div class="flex-grow max-w-xs">
+                            <label class="block text-xs font-semibold text-cyan-400 mb-1">Mes de Análisis</label>
+                            <select id="chart-filter-month" onchange="renderWeeklyCharts()" class="w-full px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-950 text-white focus:outline-none focus:border-cyan-500">
+                                <option value="0">Enero</option>
+                                <option value="1">Febrero</option>
+                                <option value="2">Marzo</option>
+                                <option value="3">Abril</option>
+                                <option value="4">Mayo</option>
+                                <option value="5">Junio</option>
+                                <option value="6">Julio</option>
+                                <option value="7">Agosto</option>
+                                <option value="8">Septiembre</option>
+                                <option value="9">Octubre</option>
+                                <option value="10">Noviembre</option>
+                                <option value="11">Diciembre</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Contenedor donde se inyectarán las gráficas (Semana 1, 2, etc) -->
+                    <div id="charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Generado por JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- VISTAS ENTRENADOR (ESTÁNDAR)               -->
+            <!-- ========================================== -->
+
             <!-- FASE 1.2: AVANCE Y PROGRESO -->
             <div id="tab-progress" class="space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
-                    <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Días Hábiles Lunes a Viernes)</h2>
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Mes en Curso)</h2>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
                             <p class="text-xs text-gray-600 font-semibold uppercase">Porcentaje de Cumplimiento</p>
@@ -161,7 +214,7 @@
             <!-- FASE 1.3: TAREAS REGISTRADAS -->
             <div id="tab-tasks" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-gray-800">Historial de Actividades por Semana</h2>
+                    <h2 class="text-lg font-bold text-gray-800">Historial de Actividades por Semana (Mes en Curso)</h2>
                     <span id="current-device-date" class="text-xs text-gray-500"></span>
                 </div>
                 <div id="weeks-container" class="space-y-6"></div>
@@ -262,7 +315,6 @@
     <!-- ZONA 3: CONTROLADOR Y MOTOR JAVASCRIPT                                    -->
     <!-- ========================================================================= -->
     <script>
-        // Nueva URL API actualizada
         const API_URL = "https://script.google.com/macros/s/AKfycbxV_YibBCYvacFdKh56BYLxb8-3YHxVe_VaiY-QMUPC9thrDa3hBIKPPh_2rRxZ5pP8bA/exec";
 
         let dbPersonas = {};
@@ -270,6 +322,9 @@
         let userTasks = [];
         let currentUser = null;
         let liveServerDate = new Date();
+        
+        // Variable para almacenar y destruir las instancias de gráficas cada vez que se filtra
+        let chartInstances = []; 
 
         document.getElementById('current-device-date').innerText = `Sincronizado: ${liveServerDate.toLocaleString()}`;
 
@@ -325,13 +380,9 @@
         async function loadCloudDatabase() {
             try {
                 const response = await fetch(`${API_URL}?action=getDatabase`, { method: "GET", cache: "no-store" });
-                if (!response.ok) {
-                    throw new Error(`Apps Script respondió HTTP ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Apps Script respondió HTTP ${response.status}`);
                 const data = await response.json();
-                if (data.status !== "success") {
-                    throw new Error(data.message || "Apps Script no devolvió status success");
-                }
+                if (data.status !== "success") throw new Error(data.message || "Apps Script no devolvió status success");
 
                 dbPersonas = {};
                 if (Array.isArray(data.personas) && data.personas.length > 1) {
@@ -340,9 +391,7 @@
                         if (row[0] !== undefined && row[0] !== "") {
                             const rawRol = String(row[2] || "Entrenador").trim();
                             const rolNormalizado = rawRol.toLowerCase();
-                            const rolDefinitivo = (rolNormalizado === "admin" || rolNormalizado === "administrador")
-                                ? "Admin"
-                                : rawRol;
+                            const rolDefinitivo = (rolNormalizado === "admin" || rolNormalizado === "administrador") ? "Admin" : rawRol;
 
                             dbPersonas[String(row[0]).trim()] = {
                                 cedula: String(row[0]).trim(),
@@ -408,9 +457,7 @@
             const catSelect = document.getElementById('form-categoria');
             if (!catSelect) return;
             let optionsHtml = '<option value="">Seleccione...</option>';
-            Object.keys(dbListas).forEach(cat => {
-                optionsHtml += `<option value="${cat}">${cat}</option>`;
-            });
+            Object.keys(dbListas).forEach(cat => { optionsHtml += `<option value="${cat}">${cat}</option>`; });
             catSelect.innerHTML = optionsHtml;
         }
 
@@ -476,21 +523,29 @@
                 const nav = document.getElementById('main-nav');
 
                 if (currentUser.rol === "Admin") {
+                    // Pestañas Administrador
                     nav.innerHTML = `
-                        <button onclick="switchAdminTab('dashboard')" id="nav-admin" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Panel Gerencial (Modo Oscuro)</button>
+                        <button onclick="switchAdminTab('dashboard')" id="nav-admin-dashboard" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Dashboard Global</button>
+                        <button onclick="switchAdminTab('charts')" id="nav-admin-charts" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">📈 Filtro por Gráficas</button>
                     `;
                     document.getElementById('tab-progress').classList.add('hidden');
                     document.getElementById('tab-tasks').classList.add('hidden');
                     document.getElementById('tab-form').classList.add('hidden');
+                    
                     document.getElementById('view-admin-dashboard').classList.remove('hidden');
+                    document.getElementById('view-admin-charts').classList.add('hidden');
+                    
+                    populateAdminFilters(); // Llenamos selectores de gráficas
                     renderAdminDashboard();
                 } else {
+                    // Pestañas Entrenador
                     nav.innerHTML = `
                         <button onclick="switchTab('progress')" id="nav-progress" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">1.2 Avance y Progreso</button>
                         <button onclick="switchTab('tasks')" id="nav-tasks" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">1.3 Tareas Registradas</button>
                         <button onclick="switchTab('form')" id="nav-form" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">1.4 Nuevo Registro</button>
                     `;
                     document.getElementById('view-admin-dashboard').classList.add('hidden');
+                    document.getElementById('view-admin-charts').classList.add('hidden');
                     document.getElementById('tab-progress').classList.remove('hidden');
                     document.getElementById('form-nombre').value = currentUser.nombre;
                     document.getElementById('auto-rol').innerText = currentUser.rol;
@@ -526,17 +581,159 @@
         }
 
         function switchAdminTab(tab) {
-            renderAdminDashboard();
+            if(tab === 'dashboard') {
+                document.getElementById('view-admin-dashboard').classList.remove('hidden');
+                document.getElementById('view-admin-charts').classList.add('hidden');
+                document.getElementById('nav-admin-dashboard').className = "py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition";
+                document.getElementById('nav-admin-charts').className = "py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition";
+                renderAdminDashboard();
+            } else {
+                document.getElementById('view-admin-dashboard').classList.add('hidden');
+                document.getElementById('view-admin-charts').classList.remove('hidden');
+                document.getElementById('nav-admin-charts').className = "py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition";
+                document.getElementById('nav-admin-dashboard').className = "py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition";
+                renderWeeklyCharts();
+            }
         }
+
+        // ==============================================================
+        // LÓGICA DE GRÁFICAS ADMINISTRATIVAS POR EJECUTIVO
+        // ==============================================================
+        
+        function populateAdminFilters() {
+            const execSelect = document.getElementById('chart-filter-exec');
+            execSelect.innerHTML = '<option value="todos">Todos los Ejecutivos</option>';
+            
+            // Obtenemos todos los entrenadores
+            const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
+            trainers.forEach(cedula => {
+                const p = dbPersonas[cedula];
+                execSelect.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+            });
+
+            // Establecemos el mes actual por defecto
+            const monthSelect = document.getElementById('chart-filter-month');
+            monthSelect.value = liveServerDate.getMonth();
+        }
+
+        function renderWeeklyCharts() {
+            const selectedExec = document.getElementById('chart-filter-exec').value;
+            const selectedMonth = parseInt(document.getElementById('chart-filter-month').value);
+            const currentYear = liveServerDate.getFullYear();
+
+            // 1. Destruimos las gráficas viejas para evitar sobreposición
+            chartInstances.forEach(chart => chart.destroy());
+            chartInstances = [];
+
+            const container = document.getElementById('charts-container');
+            container.innerHTML = '';
+
+            // 2. Filtramos las tareas según la selección
+            const filteredTasks = userTasks.filter(t => {
+                const matchExec = (selectedExec === 'todos' || t.nombre === selectedExec);
+                
+                let matchDate = false;
+                let cleanStr = String(t.fecha).split('T')[0];
+                let parts = cleanStr.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    let d = new Date(parts[0], parts[1] - 1, parts[2]);
+                    matchDate = (d.getMonth() === selectedMonth && d.getFullYear() === currentYear);
+                }
+                return matchExec && matchDate;
+            });
+
+            if (filteredTasks.length === 0) {
+                container.innerHTML = `<div class="col-span-2 p-6 text-center text-slate-500 bg-slate-800/30 rounded border border-slate-700">No hay registros para este ejecutivo en el mes seleccionado.</div>`;
+                return;
+            }
+
+            // 3. Agrupamos los datos por semana
+            const weeksData = {};
+            filteredTasks.forEach(t => {
+                const w = getWeekOfMonth(t.fecha);
+                if (!weeksData[w]) {
+                    weeksData[w] = { totalHorasSemana: 0, categorias: {} };
+                }
+                const hrs = parseFloat(t.totalHoras) || 0;
+                weeksData[w].totalHorasSemana += hrs;
+                // Sumamos las horas de la categoría en esa semana
+                weeksData[w].categorias[t.categoria] = (weeksData[w].categorias[t.categoria] || 0) + hrs;
+            });
+
+            // 4. Construimos el HTML e inicializamos Chart.js para cada semana
+            Object.keys(weeksData).sort().forEach(weekNum => {
+                const week = weeksData[weekNum];
+                const canvasId = `chart-week-${weekNum}`;
+
+                const wrapper = document.createElement('div');
+                wrapper.className = "bg-slate-800/40 p-4 rounded-xl border border-slate-700/60 shadow-lg";
+                wrapper.innerHTML = `
+                    <div class="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-2">
+                        <h3 class="font-bold text-cyan-400 text-lg">Semana ${weekNum}</h3>
+                        <span class="bg-slate-900 text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-600 font-mono">
+                            Total: ${week.totalHorasSemana.toFixed(1)} hrs
+                        </span>
+                    </div>
+                    <div class="relative h-56 w-full">
+                        <canvas id="${canvasId}"></canvas>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+
+                const ctx = document.getElementById(canvasId).getContext('2d');
+                
+                // Extraemos las etiquetas (categorías) y los valores (horas) para la gráfica
+                const labels = Object.keys(week.categorias);
+                const data = Object.values(week.categorias);
+
+                const newChart = new Chart(ctx, {
+                    type: 'bar', // Tipo de gráfica de barras horizontales o verticales
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Horas Invertidas',
+                            data: data,
+                            backgroundColor: '#00A9CE', // Color Cyan Overlap
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: { label: function(context) { return context.parsed.y + ' hrs'; } }
+                            }
+                        },
+                        scales: {
+                            y: { 
+                                beginAtZero: true, 
+                                ticks: { color: '#94a3b8' }, 
+                                grid: { color: '#334155' } 
+                            },
+                            x: { 
+                                ticks: { color: '#94a3b8' }, 
+                                grid: { display: false } 
+                            }
+                        }
+                    }
+                });
+                
+                chartInstances.push(newChart); // La guardamos para poder borrarla al cambiar el filtro
+            });
+        }
+
+        // ==============================================================
+        // FUNCIONES DE FORMULARIO Y REGISTROS (Entrenador)
+        // ==============================================================
 
         function autofillDateInfo() {
             const dateVal = document.getElementById('form-fecha').value;
             if (!dateVal) return;
             const dateObj = new Date(dateVal + 'T00:00:00');
-            
             const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
             const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
             document.getElementById('auto-mes').innerText = meses[dateObj.getMonth()];
             document.getElementById('auto-anio').innerText = dateObj.getFullYear();
             const dayIndex = dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1;
@@ -546,7 +743,6 @@
         function checkDateAndAutofill() {
             const dateVal = document.getElementById('form-fecha').value;
             autofillDateInfo();
-
             if (festivosColombia2026.includes(dateVal)) {
                 alert("📅 La fecha seleccionada coincide con un DÍA FESTIVO. Se registrará automáticamente con 8.4 horas de novedad.");
                 document.getElementById('form-categoria').value = "Ausencias y Permisos Laborales";
@@ -555,38 +751,25 @@
                 updateActivities();
                 document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales";
                 lockForStandardHours(8.4);
-            } else {
-                unlockHours();
-            }
+            } else { unlockHours(); }
         }
 
-        function handleCategoryChange() {
-            updateSubcategories();
-            unlockHours();
-        }
+        function handleCategoryChange() { updateSubcategories(); unlockHours(); }
 
         function handleSubcategoryChange() {
             const cat = document.getElementById('form-categoria').value;
             const sub = document.getElementById('form-subcategoria').value;
             updateActivities();
-
-            const ausenciasPermitidas = [
-                "Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", 
-                "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"
-            ];
-
-            if (cat === "Ausencias y Permisos Laborales" || ausenciasPermitidas.includes(sub)) {
-                lockForStandardHours(8.4);
-            } else {
-                unlockHours();
-            }
+            const ausenciasPermitidas = ["Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"];
+            if (cat === "Ausencias y Permisos Laborales" || ausenciasPermitidas.includes(sub)) { lockForStandardHours(8.4); } 
+            else { unlockHours(); }
         }
 
         function lockForStandardHours(hoursValue) {
             const container = document.getElementById('hours-container');
             container.innerHTML = `
                 <div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center">
-                    <span>⚡ Novedad / Festivo detectado: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span>
+                    <span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span>
                     <input type="hidden" id="form-horainicio" value="08:00">
                     <input type="hidden" id="form-horafin" value="16:24">
                 </div>
@@ -617,11 +800,8 @@
             const subSelect = document.getElementById('form-subcategoria');
             subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>';
             document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
-
             if (cat && dbListas[cat]) {
-                Object.keys(dbListas[cat]).forEach(sub => {
-                    subSelect.innerHTML += `<option value="${sub}">${sub}</option>`;
-                });
+                Object.keys(dbListas[cat]).forEach(sub => { subSelect.innerHTML += `<option value="${sub}">${sub}</option>`; });
             }
         }
 
@@ -630,21 +810,15 @@
             const sub = document.getElementById('form-subcategoria').value;
             const actSelect = document.getElementById('form-actividad');
             actSelect.innerHTML = '<option value="">Seleccione actividad...</option>';
-
             if (cat && sub && dbListas[cat][sub]) {
-                dbListas[cat][sub].forEach(act => {
-                    actSelect.innerHTML += `<option value="${act}">${act}</option>`;
-                });
+                dbListas[cat][sub].forEach(act => { actSelect.innerHTML += `<option value="${act}">${act}</option>`; });
             }
         }
 
         async function readApiResponse(response) {
             const rawText = await response.text();
-            try {
-                return JSON.parse(rawText);
-            } catch (_) {
-                throw new Error(`Respuesta no válida de Apps Script (HTTP ${response.status}). Puede ser un problema de permisos o publicación.`);
-            }
+            try { return JSON.parse(rawText); } 
+            catch (_) { throw new Error(`Respuesta no válida de Apps Script (HTTP ${response.status}).`); }
         }
 
         async function saveActivity(event) {
@@ -664,109 +838,54 @@
             const actividad = document.getElementById('form-actividad').value;
             const observaciones = document.getElementById('form-observaciones').value;
 
-            let totalHoras = 0;
-            let horaInicio = "";
-            let horaFin = "";
-
+            let totalHoras = 0; let horaInicio = ""; let horaFin = "";
             const hiddenStart = document.getElementById('form-horainicio');
             if (hiddenStart && hiddenStart.type === "hidden") {
-                totalHoras = 8.4;
-                horaInicio = "08:00";
-                horaFin = "16:24";
+                totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24";
             } else {
                 horaInicio = document.getElementById('form-horainicio').value;
                 horaFin = document.getElementById('form-horafin').value;
                 const [h1, m1] = horaInicio.split(':').map(Number);
                 const [h2, m2] = horaFin.split(':').map(Number);
                 totalHoras = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
-
-                if (totalHoras <= 0) {
-                    alert("La hora final debe ser mayor a la hora de inicio.");
-                    return;
-                }
+                if (totalHoras <= 0) { alert("La hora final debe ser mayor a la hora de inicio."); return; }
             }
 
             const payload = new URLSearchParams({
-                action: "saveTask",
-                estado: estado,
-                codRef: estado,
-                fecha: fecha,
-                mes: mes,
-                anio: anio,
-                dia: dia,
-                nombre: nombre,
-                rol: rol,
-                region: region,
-                ciudad: ciudad,
-                canal: canal,
-                categoria: categoria,
-                subcategoria: subcategoria,
-                actividad: actividad,
-                horaInicio: horaInicio,
-                horaFin: horaFin,
-                totalHoras: totalHoras.toFixed(1),
-                observaciones: observaciones
+                action: "saveTask", estado: estado, codRef: estado, fecha: fecha, mes: mes, anio: anio,
+                dia: dia, nombre: nombre, rol: rol, region: region, ciudad: ciudad, canal: canal,
+                categoria: categoria, subcategoria: subcategoria, actividad: actividad,
+                horaInicio: horaInicio, horaFin: horaFin, totalHoras: totalHoras.toFixed(1), observaciones: observaciones
             });
 
             showLoading("Guardando actividad en la nube...");
-
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: payload
-                });
+                const res = await fetch(API_URL, { method: "POST", body: payload });
                 const result = await readApiResponse(res);
                 hideLoading();
-
                 if (result.status === "success") {
                     alert("¡Actividad guardada en la nube con éxito!");
                     await loadCloudDatabase();
-                    resetFormToNew();
-                    renderWeeksTasks();
-                    updateProgressView();
-                    switchTab('tasks');
-                } else {
-                    alert(`Error al guardar en la nube: ${result.message || "Apps Script rechazó la operación."}`);
-                }
+                    resetFormToNew(); renderWeeksTasks(); updateProgressView(); switchTab('tasks');
+                } else { alert(`Error: ${result.message}`); }
             } catch (e) {
-                hideLoading();
-                console.error("Error guardando actividad:", e);
-                alert(`No se pudo guardar la actividad. Detalle: ${e.message || e}`);
+                hideLoading(); console.error(e); alert(`No se pudo guardar. Detalle: ${e.message}`);
             }
         }
 
-        /** Función de eliminación directa por rowIndex exacto */
         async function deleteTask(rowIndex) {
             if (!confirm("¿Estás seguro de que deseas eliminar este registro de la base de datos?")) return;
-
             showLoading("Eliminando registro de la nube...");
-
             try {
-                const payload = new URLSearchParams({
-                    action: "deleteTask",
-                    rowIndex: rowIndex
-                });
-
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    body: payload
-                });
+                const payload = new URLSearchParams({ action: "deleteTask", rowIndex: rowIndex });
+                const res = await fetch(API_URL, { method: "POST", body: payload });
                 const result = await readApiResponse(res);
                 hideLoading();
-
                 if (result.status === "success") {
                     alert("¡Registro eliminado con éxito!");
-                    await loadCloudDatabase();
-                    renderWeeksTasks();
-                    updateProgressView();
-                } else {
-                    alert(`Error al eliminar el registro: ${result.message || "Apps Script rechazó la operación."}`);
-                }
-            } catch (e) {
-                hideLoading();
-                console.error("Error eliminando registro:", e);
-                alert(`No se pudo eliminar el registro. Detalle: ${e.message || e}`);
-            }
+                    await loadCloudDatabase(); renderWeeksTasks(); updateProgressView();
+                } else { alert(`Error: ${result.message}`); }
+            } catch (e) { hideLoading(); console.error(e); alert(`No se pudo eliminar. Detalle: ${e.message}`); }
         }
 
         function resetFormToNew() {
@@ -789,29 +908,26 @@
             const month = liveServerDate.getMonth();
             const todayDate = liveServerDate.getDate();
             let count = 0;
-
             for (let d = 1; d <= todayDate; d++) {
                 const tempDate = new Date(year, month, d);
                 const dayOfWeek = tempDate.getDay();
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-                    count++;
-                }
+                if (dayOfWeek >= 1 && dayOfWeek <= 5) count++;
             }
             return count;
         }
 
+        // ==============================================================
+        // FUNCIONES DE VISTA ENTRENADOR Y ADMIN DASHBOARD (Con filtro de mes)
+        // ==============================================================
+
         function renderWeeksTasks() {
             const container = document.getElementById('weeks-container');
             container.innerHTML = '';
-
-            // 1. Obtenemos el mes y año actual del servidor/dispositivo
             const currentMonth = liveServerDate.getMonth();
             const currentYear = liveServerDate.getFullYear();
 
-            // 2. Filtramos para que solo traiga las tareas del usuario logueado Y del mes actual
             const myTasks = userTasks.filter(t => {
                 if (t.nombre !== currentUser.nombre) return false;
-                
                 let cleanStr = String(t.fecha).split('T')[0];
                 let parts = cleanStr.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
@@ -839,7 +955,6 @@
                     const cleanDate = formatDateClean(t.fecha);
                     const cleanStart = formatTimeClean(t.horaInicio);
                     const cleanEnd = formatTimeClean(t.horaFin);
-
                     rowsHtml += `
                         <tr class="hover:bg-gray-50">
                             <td class="p-3 border-b"><span class="px-2 py-1 text-xs rounded font-semibold ${t.estado === 'Ejecutado' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'}">${t.estado}</span></td>
@@ -849,7 +964,7 @@
                             <td class="p-3 border-b">${t.subcategoria}</td>
                             <td class="p-3 border-b">${t.actividad}</td>
                             <td class="p-3 border-b text-center">
-                                <button onclick="deleteTask(${t.rowIndex})" title="Eliminar registro" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
+                                <button onclick="deleteTask(${t.rowIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
@@ -865,24 +980,7 @@
                             <h3 class="font-bold text-gray-700 text-sm">📅 ${weekNum}ª Semana del Mes</h3>
                             <span class="text-xs text-gray-500">${weeksMap[weekNum].length} registro(s)</span>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left border-collapse text-sm">
-                                <thead>
-                                    <tr class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                                        <th class="p-3 border-b">Estado</th>
-                                        <th class="p-3 border-b">Fecha (DD/MM/AAAA)</th>
-                                        <th class="p-3 border-b">Horario / Horas</th>
-                                        <th class="p-3 border-b">Categoría</th>
-                                        <th class="p-3 border-b">Subcategoría</th>
-                                        <th class="p-3 border-b">Actividad / Proceso</th>
-                                        <th class="p-3 border-b text-center">Eliminar</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-200">
-                                    ${rowsHtml}
-                                </tbody>
-                            </table>
-                        </div>
+                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm"><tbody class="divide-y divide-gray-200">${rowsHtml}</tbody></table></div>
                     </div>
                 `;
             });
@@ -893,10 +991,8 @@
             const currentMonthIndex = liveServerDate.getMonth();
             const currentYearNum = liveServerDate.getFullYear();
 
-            // Aplicamos el mismo filtro estricto del mes para calcular las métricas correctas
             const myTasks = userTasks.filter(t => {
                 if (t.nombre !== currentUser.nombre) return false;
-                
                 let cleanStr = String(t.fecha).split('T')[0];
                 let parts = cleanStr.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
@@ -910,9 +1006,7 @@
             const uniqueDaysCount = uniqueDatesWorked.length;
 
             document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
-            
             const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDaysCount / businessDaysTarget) * 100)) : 0;
-            
             const statPercentageEl = document.getElementById('stat-percentage');
             statPercentageEl.innerText = compliance + '%';
             statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
@@ -926,7 +1020,6 @@
 
             const weeklyContainer = document.getElementById('stat-weekly-hours');
             weeklyContainer.innerHTML = '';
-
             if (Object.keys(weeklyHoursMap).length === 0) {
                 weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas en este mes</span>`;
                 return;
@@ -934,16 +1027,8 @@
 
             Object.keys(weeklyHoursMap).sort().forEach(w => {
                 const hrs = weeklyHoursMap[w];
-                let alertHtml = '';
-                if (hrs > 42) {
-                    alertHtml = `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: Validar horas registradas en esta semana (${hrs.toFixed(1)} hrs)</div>`;
-                }
-                weeklyContainer.innerHTML += `
-                    <div class="mb-2">
-                        <span class="text-gray-700">Semana ${w}:</span> <span class="font-black">${hrs.toFixed(1)} hrs</span>
-                        ${alertHtml}
-                    </div>
-                `;
+                let alertHtml = hrs > 42 ? `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: (${hrs.toFixed(1)} hrs)</div>` : '';
+                weeklyContainer.innerHTML += `<div class="mb-2"><span class="text-gray-700">Semana ${w}:</span> <span class="font-black">${hrs.toFixed(1)} hrs</span>${alertHtml}</div>`;
             });
         }
 
@@ -954,28 +1039,28 @@
 
             const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
             let teamStats = [];
-
             let totalAdminReunionesCount = 0;
-            let totalGeneralTasks = userTasks.length;
+            
+            const currentMonthIndex = liveServerDate.getMonth();
+            const currentYearNum = liveServerDate.getFullYear();
+
+            // Filtramos las tareas globales SOLO al mes actual para que el ranking sea real al mes
+            const monthTasks = userTasks.filter(t => {
+                let cleanStr = String(t.fecha).split('T')[0];
+                let parts = cleanStr.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+                    return dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum;
+                }
+                return false;
+            });
+            const totalGeneralTasks = monthTasks.length;
 
             trainers.forEach(cedula => {
                 const p = dbPersonas[cedula];
-                const pTasks = userTasks.filter(t => t.nombre === p.nombre);
+                const pTasks = monthTasks.filter(t => t.nombre === p.nombre);
                 
-                const currentMonthIndex = liveServerDate.getMonth();
-                const currentYearNum = liveServerDate.getFullYear();
-                const uniqueDays = [...new Set(pTasks.map(t => {
-                    let cleanStr = String(t.fecha).split('T')[0];
-                    let parts = cleanStr.split('-');
-                    if (parts.length === 3 && parts[0].length === 4) {
-                        let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
-                        if (dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum) {
-                            return cleanStr;
-                        }
-                    }
-                    return null;
-                }))].filter(Boolean).length;
-
+                const uniqueDays = [...new Set(pTasks.map(t => String(t.fecha).split('T')[0]))].length;
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
 
                 const dailyHoursMap = {};
@@ -983,16 +1068,11 @@
                     const cleanD = formatDateClean(t.fecha);
                     if (!dailyHoursMap[cleanD]) dailyHoursMap[cleanD] = 0;
                     dailyHoursMap[cleanD] += parseFloat(t.totalHoras);
-
-                    if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") {
-                        totalAdminReunionesCount++;
-                    }
+                    if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") totalAdminReunionesCount++;
                 });
 
                 let hasOverload = false;
-                Object.keys(dailyHoursMap).forEach(date => {
-                    if (dailyHoursMap[date] > 42) hasOverload = true;
-                });
+                Object.keys(dailyHoursMap).forEach(date => { if (dailyHoursMap[date] > 42) hasOverload = true; });
 
                 teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
             });
@@ -1006,20 +1086,16 @@
                     <div class="bg-amber-950/80 border border-amber-600/50 text-amber-200 p-4 rounded-xl flex items-start space-x-3 shadow-lg">
                         <span class="text-xl">⚠️</span>
                         <div>
-                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa: Alto uso en Categoría Administrativo / Reuniones</h4>
-                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos. Se recomienda revisar la optimización de espacios formativos de campo.</p>
+                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa (Mes en Curso): Alto uso en Categoría Administrativo / Reuniones</h4>
+                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos.</p>
                         </div>
                     </div>
                 `;
-            } else {
-                alertContainer.classList.add('hidden');
-            }
+            } else { alertContainer.classList.add('hidden'); }
 
             teamStats.sort((a, b) => b.compliance - a.compliance);
-
             teamStats.forEach((st, idx) => {
                 const colorClass = getComplianceColorClass(st.compliance);
-
                 rankingBody.innerHTML += `
                     <tr class="hover:bg-slate-800/50 transition">
                         <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
@@ -1033,38 +1109,30 @@
                 `;
             });
 
-            renderTopListWithExecutantes('categoria', 'top-categories');
-            renderTopListWithExecutantes('subcategoria', 'top-subcategories');
-            renderTopListWithExecutantes('actividad', 'top-activities');
+            // Para los Top 5, usamos solo los del mes para que sea coherente
+            renderTopListWithExecutantes('categoria', 'top-categories', monthTasks);
+            renderTopListWithExecutantes('subcategoria', 'top-subcategories', monthTasks);
+            renderTopListWithExecutantes('actividad', 'top-activities', monthTasks);
         }
 
-        function renderTopListWithExecutantes(property, elementId) {
-            const counts = {};
-            const itemExecutantes = {};
-
-            userTasks.forEach(t => {
+        function renderTopListWithExecutantes(property, elementId, taskArray) {
+            const counts = {}; const itemExecutantes = {};
+            taskArray.forEach(t => {
                 const val = t[property];
                 if (val) {
                     counts[val] = (counts[val] || 0) + 1;
                     if (!itemExecutantes[val]) itemExecutantes[val] = new Set();
-                    if (t.nombre) {
-                        itemExecutantes[val].add(t.nombre);
-                    }
+                    if (t.nombre) itemExecutantes[val].add(t.nombre);
                 }
             });
 
             const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
             const el = document.getElementById(elementId);
             el.innerHTML = '';
-
-            if (sorted.length === 0) {
-                el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`;
-                return;
-            }
+            if (sorted.length === 0) { el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`; return; }
 
             sorted.forEach((item, index) => {
                 const executorsList = Array.from(itemExecutantes[item] || []).join(', ');
-                
                 const li = document.createElement('li');
                 li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
                 li.innerHTML = `
@@ -1077,22 +1145,16 @@
                         <p class="text-slate-300 font-normal">${executorsList || 'Ninguno registrado'}</p>
                     </div>
                 `;
-
                 let mobileTimeout = null;
                 li.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const tooltip = li.querySelector('div.absolute');
                     if (tooltip) {
-                        tooltip.classList.remove('hidden');
-                        tooltip.classList.add('block');
+                        tooltip.classList.remove('hidden'); tooltip.classList.add('block');
                         if (mobileTimeout) clearTimeout(mobileTimeout);
-                        mobileTimeout = setTimeout(() => {
-                            tooltip.classList.remove('block');
-                            tooltip.classList.add('hidden');
-                        }, 8000);
+                        mobileTimeout = setTimeout(() => { tooltip.classList.remove('block'); tooltip.classList.add('hidden'); }, 8000);
                     }
                 });
-
                 el.appendChild(li);
             });
         }

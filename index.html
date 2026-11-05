@@ -4,23 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Claro & Overlap · Planeador de Ocupación</title>
-    <!-- Tailwind CSS CDN -->
+    
+    <!-- ========================================================================= -->
+    <!-- LIBRERÍAS EXTERNAS (CDNs)                                                 -->
+    <!-- Se usan CDNs para no sobrecargar tu repositorio de GitHub con archivos.   -->
+    <!-- ========================================================================= -->
+    
+    <!-- Tailwind CSS: Framework para dar estilos rápidos sin escribir mucho CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
+    
+    <!-- Chart.js: Motor gráfico para renderizar las barras de las horas por semana -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Canvas Confetti CDN para alerta de Felicidades -->
+    
+    <!-- Canvas Confetti: Librería para la explosión de confeti en la alerta "Al día" -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
+    <!-- ========================================================================= -->
+    <!-- ESTILOS PERSONALIZADOS (CSS)                                              -->
+    <!-- ========================================================================= -->
     <style>
+        /* Fondo general y tipografía del sistema */
         body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+        
+        /* Colores corporativos OVERLAP (Cyan) */
         .overlap-theme-bg { background-color: #00A9CE; }
         .overlap-theme-text { color: #00A9CE; }
         .overlap-theme-border { border-color: #00A9CE; }
         
+        /* Animación para el icono circular de carga (spinner) */
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
 
-        /* Efecto de Vibración para la alerta "Ánimo" */
+        /* Animación personalizada para que la pantalla vibre en la alerta "Ánimo" */
         @keyframes vibrate {
             0% { transform: translate(0) rotate(0); }
             20% { transform: translate(-4px, 4px) rotate(-1deg); }
@@ -29,20 +44,25 @@
             80% { transform: translate(4px, -4px) rotate(1deg); }
             100% { transform: translate(0) rotate(0); }
         }
+        /* Clase de utilidad para aplicar la vibración mediante JavaScript */
         .animate-vibrate { animation: vibrate 0.1s linear infinite; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- ========================================================================= -->
-    <!-- MODAL DE ALERTAS ANIMADAS (SE MUESTRA AL INICIAR SESIÓN)                  -->
+    <!-- CAPA 1: MODALES Y ALERTAS VISUALES (Z-Index alto para sobreponerse)       -->
     <!-- ========================================================================= -->
+    
+    <!-- Modal principal de Alertas (Felicidades, Ánimo, Recordatorio) -->
+    <!-- Inicia oculto ('hidden'). JS cambiará su color de fondo dinámicamente -->
     <div id="alerta-modal-visual" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center text-white transition-opacity duration-500">
         <div id="alerta-emoji" class="text-9xl animate-bounce mb-6"></div>
         <h1 id="alerta-texto" class="text-5xl font-black text-center drop-shadow-lg uppercase tracking-wide px-4"></h1>
     </div>
 
-    <!-- SVG de Pantalla Quebrada (Efecto Intenso de Impacto) -->
+    <!-- Efecto visual de Pantalla Quebrada (Solo para alerta de Atraso) -->
+    <!-- Se dibuja usando vectores (SVG) para que no pierda calidad en pantallas grandes -->
     <svg id="cristal-roto" class="hidden fixed inset-0 w-full h-full z-[101] pointer-events-none drop-shadow-2xl" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
         <style>
             .crack-main { stroke: rgba(255,255,255,0.95); stroke-width: 0.8; fill: none; }
@@ -51,30 +71,22 @@
             .shatter-bg { fill: rgba(255,255,255,0.1); }
             .shatter-light { fill: rgba(255,255,255,0.2); }
         </style>
-        
-        <!-- Fragmentos de cristal falso -->
+        <!-- Trazos que simulan fragmentos y grietas de vidrio -->
         <polygon class="shatter-bg" points="50,50 65,30 35,25" />
         <polygon class="shatter-light" points="50,50 75,55 60,75" />
         <polygon class="shatter-bg" points="50,50 25,65 35,85" />
         <polygon class="shatter-light" points="50,50 15,35 10,50" />
-
-        <!-- Grietas principales y profundas -->
         <path class="crack-main" d="M 50 50 L 5 5 M 50 50 L 95 10 M 50 50 L 5 50 M 50 50 L 95 60 M 50 50 L 25 100 M 50 50 L 75 100 M 50 50 L 50 0 M 50 50 L 50 100" />
-        
-        <!-- Ramificaciones medianas -->
         <path class="crack-med" d="M 27 27 L 10 40 M 72 30 L 90 20 M 25 75 L 5 85 M 75 75 L 95 90 M 50 25 L 30 10 M 50 25 L 70 10 M 50 75 L 20 90 M 50 75 L 80 90" />
-        
-        <!-- Telaraña de grietas finas -->
         <path class="crack-thin" d="M 38 38 L 50 25 M 62 38 L 50 25 M 38 62 L 50 75 M 62 62 L 50 75 M 27 27 L 30 50 M 72 30 L 70 50 M 25 75 L 30 50 M 75 75 L 70 50 M 10 40 L 25 10 M 90 20 L 75 10 M 5 85 L 20 90 M 95 90 L 80 90" />
         <path class="crack-thin" d="M 15 15 L 30 5 M 85 15 L 70 5 M 15 85 L 30 95 M 85 85 L 70 95 M 5 25 L 20 30 M 95 25 L 80 30 M 5 75 L 20 70 M 95 75 L 80 70" />
-        
-        <!-- Punto de impacto centralizado múltiple -->
+        <!-- Punto de impacto múltiple en el centro -->
         <circle cx="50" cy="50" r="2.5" fill="rgba(255,255,255,1)"/>
         <circle cx="48" cy="49" r="1.5" fill="rgba(255,255,255,0.8)"/>
         <circle cx="52" cy="51" r="1" fill="rgba(255,255,255,0.9)"/>
     </svg>
 
-    <!-- SPINNER DE CARGA -->
+    <!-- Modal de Carga (Spinner) para procesos con la base de datos (.gs) -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col items-center justify-center hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl flex items-center space-x-4 border border-cyan-100">
             <div class="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full spinner"></div>
@@ -85,7 +97,9 @@
         </div>
     </div>
 
-    <!-- VISTA DE AUTENTICACIÓN (LOGIN) -->
+    <!-- ========================================================================= -->
+    <!-- CAPA 2: VISTA DE AUTENTICACIÓN (LOGIN)                                    -->
+    <!-- ========================================================================= -->
     <div id="view-login" class="flex-grow flex flex-col items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 overlap-theme-border">
             <div class="text-center mb-6">
@@ -97,6 +111,8 @@
                 <h1 class="text-lg font-bold text-gray-800">Planeador de Ocupación</h1>
                 <p class="text-xs text-gray-500 mt-1">Conectado a la Nube U-Claro</p>
             </div>
+            
+            <!-- Formulario de validación que dispara la función handleLogin() en JS -->
             <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
                 <div>
                     <label class="block text-sm font-semibold text-gray-700 mb-1">Usuario (Cédula)</label>
@@ -109,6 +125,7 @@
                 <button type="submit" class="w-full overlap-theme-bg text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition duration-200 shadow-md">
                     Iniciar Sesión
                 </button>
+                <!-- Mensaje de error oculto por defecto -->
                 <div id="login-error" class="text-red-500 text-xs text-center hidden">Cédula no registrada o incorrecta.</div>
             </form>
         </div>
@@ -119,8 +136,13 @@
         </div>
     </div>
 
-    <!-- CONTENEDOR PRINCIPAL POST-LOGIN -->
+    <!-- ========================================================================= -->
+    <!-- CAPA 3: APLICACIÓN PRINCIPAL (POST-LOGIN)                                 -->
+    <!-- Se oculta por defecto y se muestra cuando el usuario se autentica con éxito.-->
+    <!-- ========================================================================= -->
     <div id="main-app" class="hidden flex-grow flex flex-col min-h-screen">
+        
+        <!-- Header: Logo, Título y Botón de Cerrar Sesión -->
         <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10">
             <div class="flex items-center space-x-3">
                 <div class="flex items-center space-x-2">
@@ -136,16 +158,16 @@
             </div>
         </header>
 
-        <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6 z-10">
-            <!-- Navegación dinámica por rol -->
-        </nav>
+        <!-- Barra de Navegación: Los botones se inyectan dinámicamente mediante JS según el Rol -->
+        <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6 z-10"></nav>
 
         <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
 
             <!-- ========================================== -->
-            <!-- VISTAS ADMINISTRADOR (MODO OSCURO)         -->
+            <!-- SUB-VISTAS: ADMINISTRADOR (Modo Oscuro)    -->
             <!-- ========================================== -->
             
+            <!-- Dashboard Global: Ranking, Alertas y Tops de Categorías -->
             <div id="view-admin-dashboard" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -156,6 +178,7 @@
                         <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Administrador</span>
                     </div>
 
+                    <!-- Contenedor para alerta operativa global (ej. Exceso de juntas) -->
                     <div id="admin-admin-alert-container" class="mb-6 hidden"></div>
                     
                     <div class="mb-8">
@@ -163,11 +186,13 @@
                             <h3 class="font-bold text-slate-200 text-sm flex items-center space-x-2">
                                 <span>🏆 Ranking de Cumplimiento & Emisión de Alertas</span>
                             </h3>
+                            <!-- Botón para emitir la Alerta General ("TODOS") -->
                             <button onclick="enviarAlertaGeneral()" class="mt-3 sm:mt-0 bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg font-bold shadow-md transition-colors flex items-center border border-indigo-400">
                                 📢 Enviar Recordatorio General
                             </button>
                         </div>
 
+                        <!-- Tabla de Ranking Administrativo -->
                         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
@@ -185,6 +210,7 @@
                         </div>
                     </div>
 
+                    <!-- Top 5 Listas -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="bg-slate-800/60 p-4 rounded-lg border border-slate-700/60">
                             <h4 class="font-bold text-xs text-cyan-400 uppercase tracking-wide mb-3">🔥 Top 5 Categorías</h4>
@@ -202,6 +228,7 @@
                 </div>
             </div>
 
+            <!-- Gráficas y Filtros por EE y Mes -->
             <div id="view-admin-charts" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
@@ -214,6 +241,7 @@
                     <div class="flex flex-wrap gap-4 mb-6 bg-slate-800/50 p-4 rounded-lg border border-slate-700/60">
                         <div class="flex-grow max-w-sm">
                             <label class="block text-xs font-semibold text-cyan-400 mb-1">Ejecutivo / Entrenador</label>
+                            <!-- El onchange dispara el renderizado de gráficos al seleccionar -->
                             <select id="chart-filter-exec" onchange="renderWeeklyCharts()" class="w-full px-3 py-2 border border-slate-600 rounded-lg text-sm bg-slate-950 text-white focus:outline-none focus:border-cyan-500">
                                 <option value="todos">Todos los Ejecutivos</option>
                             </select>
@@ -227,14 +255,16 @@
                             </select>
                         </div>
                     </div>
+                    <!-- Contenedor vacío donde JS inyectará los canvas de Chart.js -->
                     <div id="charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                 </div>
             </div>
 
             <!-- ========================================== -->
-            <!-- VISTAS ENTRENADOR (ESTÁNDAR)               -->
+            <!-- SUB-VISTAS: ENTRENADOR (Modo Claro)        -->
             <!-- ========================================== -->
 
+            <!-- Pestaña 1.2: Avance y Progreso (Métricas del EE) -->
             <div id="tab-progress" class="space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Mes en Curso)</h2>
@@ -255,19 +285,24 @@
                 </div>
             </div>
 
+            <!-- Pestaña 1.3: Tareas Registradas (Historial del EE) -->
             <div id="tab-tasks" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
                     <h2 class="text-lg font-bold text-gray-800">Historial de Actividades (Mes en Curso)</h2>
                     <span id="current-device-date" class="text-xs text-gray-500"></span>
                 </div>
+                <!-- Las tablas de tareas se generan aquí con JS divididas por semanas -->
                 <div id="weeks-container" class="space-y-6"></div>
             </div>
 
+            <!-- Pestaña 1.4: Formulario de Nuevo Registro -->
             <div id="tab-form" class="hidden space-y-6 max-w-3xl mx-auto">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 id="form-title" class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Actividad Diaria</h2>
+                    <!-- onsubmit previene recarga y envía datos por fetch -->
                     <form id="activity-form" onsubmit="saveActivity(event)" class="space-y-4">
                         <input type="hidden" id="edit-index" value="-1">
+                        
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Estado</label>
@@ -279,10 +314,12 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Fecha</label>
+                                <!-- onchange valida si es festivo e inyecta Mes/Año/Día -->
                                 <input type="date" id="form-fecha" required onchange="checkDateAndAutofill()" class="w-full px-3 py-2 border rounded-lg text-sm">
                             </div>
                         </div>
 
+                        <!-- Panel gris de auto-relleno -->
                         <div class="grid grid-cols-3 gap-4 bg-gray-50 p-4 rounded-lg border text-xs text-gray-600">
                             <div><strong>Mes:</strong> <span id="auto-mes">-</span></div>
                             <div><strong>Año:</strong> <span id="auto-anio">-</span></div>
@@ -315,6 +352,7 @@
                             </div>
                         </div>
 
+                        <!-- Selector de horas (Se bloquea si es novedad/festivo) -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="hours-container">
                             <div>
                                 <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label>
@@ -333,6 +371,7 @@
                             <textarea id="form-observaciones" rows="2" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="Notas adicionales..."></textarea>
                         </div>
 
+                        <!-- Botones de Acción -->
                         <div class="flex space-x-3">
                             <button type="submit" class="flex-grow overlap-theme-bg text-white font-semibold py-2.5 rounded-lg hover:opacity-90 transition duration-200 shadow-md">
                                 Guardar / Actualizar Registro
@@ -345,27 +384,31 @@
 
         </main>
         
-        <!-- CRÉDITOS MAIN APP -->
+        <!-- CRÉDITOS MAIN APP (Sutiles en el pie de página) -->
         <footer class="w-full bg-white border-t border-gray-200 mt-auto py-3 text-center text-[11px] text-gray-400 font-semibold tracking-wide z-10">
             Desarrollado por OVERLAP - Ing. Edison Aguilar
         </footer>
     </div>
 
     <!-- ========================================================================= -->
-    <!-- MOTOR JAVASCRIPT                                                          -->
+    <!-- MOTOR LÓGICO (JAVASCRIPT)                                                 -->
     <!-- ========================================================================= -->
     <script>
+        // URL de tu web app de Google Apps Script (Backend)
         const API_URL = "https://script.google.com/macros/s/AKfycbxV_YibBCYvacFdKh56BYLxb8-3YHxVe_VaiY-QMUPC9thrDa3hBIKPPh_2rRxZ5pP8bA/exec";
 
-        let dbPersonas = {};
-        let dbListas = {};
-        let userTasks = [];
-        let currentUser = null;
+        // Variables Globales en memoria del navegador
+        let dbPersonas = {};     // Usuarios y sus roles
+        let dbListas = {};       // Estructura anidada: Categorías > Subcategorías > Actividades
+        let userTasks = [];      // Todos los registros (actividades, novedades y alertas falsas)
+        let currentUser = null;  // Almacena el perfil que inició sesión
         let liveServerDate = new Date();
-        let chartInstances = []; 
+        let chartInstances = []; // Arreglo para guardar las gráficas y destruirlas antes de crear nuevas
 
         document.getElementById('current-device-date').innerText = `Sincronizado: ${liveServerDate.toLocaleString()}`;
 
+        // Arreglo de festivos fijos de Colombia 2026.
+        // Se usa para auto-asignar 8.4 horas de "Ausencias y Permisos"
         const festivosColombia2026 = [
             "2026-01-01", "2026-01-12", "2026-03-23", "2026-04-02", "2026-04-03", 
             "2026-05-01", "2026-05-18", "2026-06-08", "2026-06-15", "2026-06-29", 
@@ -373,6 +416,10 @@
             "2026-11-16", "2026-12-08", "2026-12-25"
         ];
 
+        // ==========================================
+        // FUNCIONES DE UTILIDAD (UI y Formateos)
+        // ==========================================
+        
         function showLoading(text = "Procesando información...") {
             document.getElementById('loading-text').innerText = text;
             document.getElementById('loading-overlay').classList.remove('hidden');
@@ -382,12 +429,14 @@
             document.getElementById('loading-overlay').classList.add('hidden'); 
         }
 
+        // Asigna colores al % de cumplimiento (Rojo <70, Ambar <89, Verde 90+)
         function getComplianceColorClass(val) {
             if (val <= 70) return "text-red-500 font-black";
             if (val <= 89) return "text-amber-500 font-black";
             return "text-emerald-500 font-black";
         }
 
+        // Limpia la fecha quitando la "T" del ISOString
         function formatDateClean(dateStr) {
             if (!dateStr) return "";
             let cleanStr = String(dateStr).split('T')[0];
@@ -396,6 +445,7 @@
             return cleanStr;
         }
 
+        // Limpia la hora evitando segundos o zonas horarias indeseadas
         function formatTimeClean(timeStr) {
             if (!timeStr) return "";
             let str = String(timeStr);
@@ -408,19 +458,27 @@
             return str;
         }
 
+        // ==========================================
+        // CONEXIÓN AL BACKEND (Google Apps Script)
+        // ==========================================
+        
+        // Petición GET: Trae todas las hojas de Google Sheets al iniciar la app
         async function loadCloudDatabase() {
             try {
+                // Se usa 'no-store' para que el navegador no cachee datos viejos
                 const response = await fetch(`${API_URL}?action=getDatabase`, { method: "GET", cache: "no-store" });
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
                 if (data.status !== "success") throw new Error(data.message);
 
+                // 1. Parseo de la hoja PERSONAS (Validación de roles y accesos)
                 dbPersonas = {};
                 if (Array.isArray(data.personas)) {
                     for (let i = 1; i < data.personas.length; i++) {
                         const row = data.personas[i];
                         if (row[0]) {
                             const rawRol = String(row[2] || "Entrenador").trim();
+                            // Normalización de roles a 'Admin' o 'Entrenador'
                             const rolDefinitivo = (rawRol.toLowerCase() === "admin" || rawRol.toLowerCase() === "administrador") ? "Admin" : rawRol;
                             dbPersonas[String(row[0]).trim()] = {
                                 cedula: String(row[0]).trim(), nombre: String(row[1] || "").trim(),
@@ -430,6 +488,7 @@
                     }
                 }
 
+                // 2. Parseo de la hoja LISTAS DESPLEGABLES (Lógica anidada)
                 dbListas = {};
                 const cats = data.categorias || []; const subs = data.subcategorias || []; const acts = data.actividades || [];
                 let uCat = ""; let uSub = "";
@@ -440,6 +499,7 @@
                     let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
                     let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
                     
+                    // Si la celda de Categoría está vacía en Sheets, hereda la anterior (estilo merge-cells)
                     if (!cat && sub && uCat) cat = uCat; else if (cat) uCat = cat;
                     if (!sub && act && uSub) sub = uSub; else if (sub) uSub = sub;
                     
@@ -447,8 +507,9 @@
                     if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
                     if (cat && sub && act && !dbListas[cat][sub].includes(act)) dbListas[cat][sub].push(act);
                 }
-                populateCategorySelect();
+                populateCategorySelect(); // Inyecta las categorías en el formulario HTML
 
+                // 3. Parseo de la hoja TAREAS (Registros de todos los EE y Alertas de Admin)
                 userTasks = [];
                 if (Array.isArray(data.registros)) {
                     for (let i = 1; i < data.registros.length; i++) {
@@ -472,6 +533,10 @@
             }
         }
 
+        // ==========================================
+        // LÓGICA DE FORMULARIO (Selects y Horas)
+        // ==========================================
+        
         function populateCategorySelect() {
             const catSelect = document.getElementById('form-categoria');
             if (!catSelect) return;
@@ -480,6 +545,7 @@
             catSelect.innerHTML = optionsHtml;
         }
 
+        // Llena el selector de Hora Inicio de 6:00 a 17:30
         function populateStartHours() {
             const select = document.getElementById('form-horainicio');
             if (!select) return;
@@ -492,6 +558,7 @@
             }
         }
 
+        // Filtra la Hora Fin asegurando que SIEMPRE sea posterior a la Hora Inicio
         function filterEndHours() {
             const startVal = document.getElementById('form-horainicio').value;
             const endSelect = document.getElementById('form-horafin');
@@ -503,7 +570,7 @@
             
             for (let h = 6; h <= 18; h++) {
                 for (let m of [0, 30]) {
-                    if (h === 18 && m > 0) break;
+                    if (h === 18 && m > 0) break; // Máximo fin: 18:00
                     const currentTotalMinutes = h * 60 + m;
                     if (currentTotalMinutes > startTotalMinutes) {
                         const timeStr = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
@@ -513,6 +580,10 @@
             }
         }
 
+        // ==========================================
+        // SESIÓN Y NAVEGACIÓN (Auth)
+        // ==========================================
+
         async function handleLogin(event) {
             event.preventDefault();
             const user = document.getElementById('login-user').value.trim();
@@ -520,7 +591,7 @@
 
             document.getElementById('login-error').classList.add('hidden');
             showLoading("Verificando credenciales en la nube...");
-            const ok = await loadCloudDatabase();
+            const ok = await loadCloudDatabase(); // Refresca BD por si hubo cambios recientes
             hideLoading();
             
             if (!ok) { 
@@ -529,11 +600,12 @@
                 return; 
             }
 
+            // Validación: La contraseña es la misma cédula (requerimiento inicial)
             if (user === pass && dbPersonas[user]) {
                 currentUser = dbPersonas[user]; 
                 currentUser.cedula = user;
                 
-                // GUARDAR SESIÓN EN LOCALSTORAGE
+                // GUARDAR SESIÓN EN LOCALSTORAGE (Persistencia ante F5)
                 localStorage.setItem("sesion_activa", JSON.stringify(currentUser));
 
                 document.getElementById('view-login').classList.add('hidden');
@@ -541,6 +613,7 @@
                 document.getElementById('user-display-name').innerText = currentUser.nombre;
                 const nav = document.getElementById('main-nav');
 
+                // ENRUTAMIENTO POR ROL
                 if (currentUser.rol === "Admin") {
                     nav.innerHTML = `
                         <button onclick="switchAdminTab('dashboard')" id="nav-admin-dashboard" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Dashboard Global</button>
@@ -569,6 +642,7 @@
                     updateProgressView();
                     renderWeeksTasks();
                     
+                    // Esperamos 500ms para permitir renderizado antes de disparar la alerta
                     setTimeout(verificarAlertasParaEntrenador, 500);
                 }
             } else {
@@ -578,7 +652,7 @@
         }
 
         function handleLogout() {
-            // BORRAR SESIÓN DE LOCALSTORAGE
+            // Elimina la persistencia
             localStorage.removeItem("sesion_activa");
             
             currentUser = null;
@@ -587,6 +661,7 @@
             document.getElementById('login-form').reset();
         }
 
+        // Controladores de Pestañas para EE y Admin
         function switchTab(tab) {
             ['progress', 'tasks', 'form'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -613,9 +688,11 @@
         }
 
         // ==============================================================
-        // ENVIÓ Y RECEPCIÓN DE ALERTAS INVISIBLES
+        // SISTEMA DE ALERTAS ADMINISTRATIVAS INVISIBLES (Truco Maestro)
+        // Las alertas se guardan como registros de la categoría "ALERTA_ADMIN"
         // ==============================================================
 
+        // Alerta dirigida a 1 solo Entrenador
         async function enviarAlertaAdmin(nombreEntrenador, selectId) {
             const tipoAlerta = document.getElementById(selectId).value;
             if(!confirm(`¿Seguro que deseas enviar la alerta a ${nombreEntrenador}?`)) return;
@@ -636,11 +713,12 @@
                 hideLoading();
                 if (result.status === "success") {
                     alert("¡Alerta encolada exitosamente!");
-                    await loadCloudDatabase();
+                    await loadCloudDatabase(); // Se recarga BD para registrarla de inmediato
                 } else { alert("Error: " + result.message); }
             } catch (e) { hideLoading(); alert("Error enviando alerta."); }
         }
 
+        // Alerta dirigida a "TODOS"
         async function enviarAlertaGeneral() {
             if(!confirm(`¿Seguro que deseas enviar una alerta general a TODOS los ejecutivos para recordar el diligenciamiento?`)) return;
             
@@ -665,7 +743,9 @@
             } catch (e) { hideLoading(); alert("Error enviando alerta general."); }
         }
 
+        // Verificación en el dispositivo del Entrenador (EE)
         function verificarAlertasParaEntrenador() {
+            // Filtro 1: Solo sus alertas y las generales, que sean categoría ALERTA_ADMIN
             const misAlertas = userTasks.filter(t => 
                 (t.nombre === currentUser.nombre || t.nombre === "TODOS") && 
                 t.categoria === "ALERTA_ADMIN"
@@ -673,28 +753,29 @@
             
             if (misAlertas.length === 0) return;
             
-            // REGLA 1: Ordenar por ID para buscar siempre LA ÚLTIMA enviada
+            // Filtro 2: Ordenar de mayor a menor rowIndex para garantizar evaluar SOLO la última
             misAlertas.sort((a, b) => b.rowIndex - a.rowIndex);
             
-            // Toma exclusivamente la alerta más reciente y descarta las viejas
             const ultimaAlerta = misAlertas[0];
             
+            // Filtro 3: Límite de vistas usando el LocalStorage
             const alertIdStorage = `vista_alerta_${ultimaAlerta.rowIndex}`;
             let vistasActuales = parseInt(localStorage.getItem(alertIdStorage) || "0");
             
-            // REGLA 2: Mostrar SOLO si tiene menos de 2 vistas
+            // REGLA: Mostrar SOLO si tiene menos de 2 vistas (Inicio 1 y 2)
             if (vistasActuales < 2) {
                 ejecutarAnimacionAlerta(ultimaAlerta.actividad);
                 localStorage.setItem(alertIdStorage, vistasActuales + 1);
             }
         }
 
+        // Orquestador de Efectos Visuales (Confeti, Cristal, Vibración)
         function ejecutarAnimacionAlerta(tipo) {
             const modal = document.getElementById('alerta-modal-visual');
             const texto = document.getElementById('alerta-texto');
             const emoji = document.getElementById('alerta-emoji');
             
-            // REGLA 3: Duración de exactamente 3 segundos (3000 ms)
+            // REGLA ESTRICTA: Duración de la alerta = 3 segundos (3000ms)
             const DURACION_ALERTA = 3000;
             
             modal.classList.remove('hidden');
@@ -718,7 +799,6 @@
                 texto.innerText = '¡Atraso en el Planeador!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-red-950/95 text-white transition-opacity duration-500";
                 
-                // REGLA 4: Efecto de cristal súper roto
                 const cristal = document.getElementById('cristal-roto');
                 cristal.classList.remove('hidden');
                 
@@ -732,7 +812,7 @@
                 texto.innerText = '¡Ánimo, te falta poco!';
                 modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-blue-900/95 text-white transition-opacity duration-500";
                 
-                document.body.classList.add('animate-vibrate');
+                document.body.classList.add('animate-vibrate'); // Llama el keyframe de CSS
                 
                 setTimeout(() => { 
                     modal.classList.add('hidden'); 
@@ -749,7 +829,8 @@
         }
 
         // ==============================================================
-        // VISTAS ADMIN: DASHBOARD Y GRÁFICAS (Excluyendo las Alertas)
+        // VISTAS ADMIN: DASHBOARD Y GRÁFICAS
+        // (La variable mesTasks siempre excluye ALERTA_ADMIN para no dañar reportes)
         // ==============================================================
 
         function populateAdminFilters() {
@@ -765,11 +846,14 @@
             const selectedMonth = parseInt(document.getElementById('chart-filter-month').value);
             const currentYear = liveServerDate.getFullYear();
 
+            // Prevención: Destruye gráficas anteriores para evitar solapamientos visuales
             chartInstances.forEach(c => c.destroy()); chartInstances = [];
+            
             const container = document.getElementById('charts-container'); container.innerHTML = '';
 
             const filteredTasks = userTasks.filter(t => {
-                if(t.categoria === "ALERTA_ADMIN") return false;
+                if(t.categoria === "ALERTA_ADMIN") return false; // Bloqueo de Alertas Falsas
+                
                 const matchExec = (selectedExec === 'todos' || t.nombre === selectedExec);
                 let matchDate = false;
                 let cleanStr = String(t.fecha).split('T')[0];
@@ -786,6 +870,7 @@
                 return;
             }
 
+            // Agrupamiento Matemático: Semanas > Horas Totales
             const weeksData = {};
             filteredTasks.forEach(t => {
                 const w = getWeekOfMonth(t.fecha);
@@ -795,6 +880,7 @@
                 weeksData[w].categorias[t.categoria] = (weeksData[w].categorias[t.categoria] || 0) + hrs;
             });
 
+            // Renderizado Dinámico de Chart.js
             Object.keys(weeksData).sort().forEach(weekNum => {
                 const week = weeksData[weekNum]; const canvasId = `chart-week-${weekNum}`;
                 const wrapper = document.createElement('div');
@@ -838,6 +924,7 @@
             const currentMonthIndex = liveServerDate.getMonth(); 
             const currentYearNum = liveServerDate.getFullYear();
 
+            // Tareas Globales (Sin Alertas, filtradas al mes actual)
             const monthTasks = userTasks.filter(t => {
                 if(t.categoria === "ALERTA_ADMIN") return false;
                 let cleanStr = String(t.fecha).split('T')[0]; 
@@ -850,6 +937,7 @@
             });
             const totalGeneralTasks = monthTasks.length;
 
+            // Recorrido de cada entrenador para calcular sus métricas de Cumplimiento (%)
             trainers.forEach(cedula => {
                 const p = dbPersonas[cedula];
                 const pTasks = monthTasks.filter(t => t.nombre === p.nombre);
@@ -864,14 +952,17 @@
                     if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") totalAdminReunionesCount++;
                 });
                 
+                // Si la suma diaria supera 42h, se emite bandera roja local
                 let hasOverload = false;
                 Object.keys(dailyHoursMap).forEach(date => { if (dailyHoursMap[date] > 42) hasOverload = true; });
                 
                 teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
             });
 
+            // Ordenamiento por mayor cumplimiento
             teamStats.sort((a, b) => b.compliance - a.compliance);
             
+            // Renderizado de tabla
             teamStats.forEach((st, idx) => {
                 const colorClass = getComplianceColorClass(st.compliance);
                 
@@ -898,13 +989,14 @@
                 `;
             });
 
+            // Tops de categorías (Modo Hover expone lista de usuarios)
             renderTopListWithExecutantes('categoria', 'top-categories', monthTasks);
             renderTopListWithExecutantes('subcategoria', 'top-subcategories', monthTasks);
             renderTopListWithExecutantes('actividad', 'top-activities', monthTasks);
         }
 
         // ==============================================================
-        // VISTAS ENTRENADOR Y FORMULARIOS (Excluyendo Alertas)
+        // VISTAS ENTRENADOR: HISTORIAL Y MÉTRICAS PROPIAS
         // ==============================================================
 
         function renderWeeksTasks() {
@@ -913,6 +1005,7 @@
             const currentMonth = liveServerDate.getMonth(); 
             const currentYear = liveServerDate.getFullYear();
 
+            // Filtro Personal y de Mes actual
             const myTasks = userTasks.filter(t => {
                 if (t.nombre !== currentUser.nombre) return false;
                 if(t.categoria === "ALERTA_ADMIN") return false;
@@ -971,8 +1064,11 @@
                 return false;
             });
 
+            // Matemáticas de Cumplimiento
             const uniqueDatesWorked = [...new Set(myTasks.map(t => String(t.fecha).split('T')[0]))];
             document.getElementById('stat-days').innerText = `${uniqueDatesWorked.length} / ${businessDaysTarget} hábiles`;
+            
+            // Fórmula: (Días diligenciados / Días hábiles esperados hasta hoy) * 100
             const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDatesWorked.length / businessDaysTarget) * 100)) : 0;
             const statPercentageEl = document.getElementById('stat-percentage');
             statPercentageEl.innerText = compliance + '%'; 
@@ -995,7 +1091,11 @@
             });
         }
 
-        // Utilidades de formulario
+        // ==============================================================
+        // LÓGICA DE FORMULARIO DE NOVEDADES
+        // Detecta Festivos o Ausencias y bloquea a 8.4 horas
+        // ==============================================================
+        
         function checkDateAndAutofill() {
             autofillDateInfo();
             if (festivosColombia2026.includes(document.getElementById('form-fecha').value)) {
@@ -1027,10 +1127,12 @@
             }
         }
         
+        // Inserta inputs ocultos forzando las 8.4 hrs cuando hay novedad (Ej. festivos)
         function lockForStandardHours(hoursValue) {
             document.getElementById('hours-container').innerHTML = `<div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center"><span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span><input type="hidden" id="form-horainicio" value="08:00"><input type="hidden" id="form-horafin" value="16:24"></div>`;
         }
         
+        // Restaura los selectores manuales de Hora Inicio/Fin
         function unlockHours() {
             if (document.getElementById('hours-container').querySelector('input[type="hidden"]')) {
                 document.getElementById('hours-container').innerHTML = `<div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label><select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select></div><div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label><select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white"><option value="">Seleccione hora inicio primero...</option></select></div>`;
@@ -1054,15 +1156,23 @@
             if (cat && sub && dbListas[cat][sub]) dbListas[cat][sub].forEach(act => actSelect.innerHTML += `<option value="${act}">${act}</option>`);
         }
 
+        // ==============================================================
+        // TRANSACCIONES API (Fetch POST / GET a Google Scripts)
+        // ==============================================================
+
+        // Helper para leer la API previniendo bloqueos de CORS o respuestas en texto plano
         async function readApiResponse(response) {
             const rawText = await response.text();
             try { return JSON.parse(rawText); } catch (_) { throw new Error(`HTTP ${response.status}`); }
         }
 
+        // Guarda las actividades (Trainer) en la base de datos central
         async function saveActivity(event) {
             event.preventDefault();
             let totalHoras = 0; let horaInicio = ""; let horaFin = "";
             const hiddenStart = document.getElementById('form-horainicio');
+            
+            // Si el bloque está "locked", asignamos 8.4 (Festivos)
             if (hiddenStart && hiddenStart.type === "hidden") { 
                 totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24"; 
             } else {
@@ -1124,6 +1234,7 @@
             return Math.ceil(new Date(String(dateString).split('T')[0] + 'T00:00:00').getDate() / 7); 
         }
         
+        // Calcula días hábiles asumiendo L-V. (S/D ignorados en métrica estándar).
         function countBusinessDaysUntilNow() {
             const year = liveServerDate.getFullYear(); 
             const month = liveServerDate.getMonth(); 
@@ -1136,6 +1247,7 @@
             return count;
         }
         
+        // Extrae Top 5 y agrupa las personas involucradas usando un Set iterador
         function renderTopListWithExecutantes(property, elementId, taskArray) {
             const counts = {}; 
             const itemExecutantes = {};
@@ -1165,11 +1277,13 @@
                         <span class="text-slate-200">${index + 1}. ${item}</span>
                         <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
                     </div>
+                    <!-- Tooltip flotante (Hover) que muestra los nombres -->
                     <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
                         <p class="font-semibold text-cyan-400 mb-1">👥 Ejecutivos:</p>
                         <p class="text-slate-300 font-normal">${Array.from(itemExecutantes[item] || []).join(', ') || 'Ninguno'}</p>
                     </div>`;
                 
+                // Evento para dispositivos móviles (Touch) en lugar de Hover
                 li.addEventListener('click', (e) => { 
                     e.stopPropagation(); 
                     const t = li.querySelector('div.absolute'); 
@@ -1184,8 +1298,9 @@
         }
 
         // ==============================================================
-        // RESTAURACIÓN AUTOMÁTICA DE SESIÓN Y CARGA INICIAL
+        // INICIO GLOBAL: RESTAURACIÓN DE SESIÓN Y CARGA INICIAL
         // ==============================================================
+        
         function restaurarSesion() {
             const sesionGuardada = localStorage.getItem("sesion_activa");
             
@@ -1225,16 +1340,16 @@
                     updateProgressView();
                     renderWeeksTasks();
                     
-                    // Solo intentar mostrar las alertas cuando ya cargó todo
+                    // Se usa setTimeout para asegurar que el DOM esté listo antes de vibrar/dibujar el modal
                     setTimeout(verificarAlertasParaEntrenador, 500);
                 }
             }
         }
 
-        // Mostrar indicador inmediatamente al cargar o refrescar (F5)
+        // 1. Mostrar indicador apenas la página carga o se refresca (F5)
         showLoading("Iniciando sistema y conectando a la nube...");
         
-        // Ejecutar carga inicial de BD y luego intentar restaurar sesión automáticamente
+        // 2. Ejecutar carga inicial de BD y luego intentar restaurar sesión automáticamente
         loadCloudDatabase().then(() => {
             restaurarSesion();
             hideLoading(); // Quitar spinner sin importar si restauró sesión o si se quedó en el login

@@ -6,23 +6,56 @@
     <title>Claro & Overlap · Planeador de Ocupación</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN para las gráficas -->
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Canvas Confetti CDN para alerta de Felicidades -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
     <style>
-        body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; }
+        body { background-color: #f4f5f7; font-family: system-ui, -apple-system, sans-serif; overflow-x: hidden; }
         .overlap-theme-bg { background-color: #00A9CE; }
         .overlap-theme-text { color: #00A9CE; }
         .overlap-theme-border { border-color: #00A9CE; }
-        /* Animación para el indicador de carga */
+        
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spinner { animation: spin 1s linear infinite; }
+
+        /* Efecto de Vibración para la alerta "Ánimo" */
+        @keyframes vibrate {
+            0% { transform: translate(0) rotate(0); }
+            20% { transform: translate(-4px, 4px) rotate(-1deg); }
+            40% { transform: translate(-4px, -4px) rotate(1deg); }
+            60% { transform: translate(4px, 4px) rotate(0deg); }
+            80% { transform: translate(4px, -4px) rotate(1deg); }
+            100% { transform: translate(0) rotate(0); }
+        }
+        .animate-vibrate { animation: vibrate 0.1s linear infinite; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
     <!-- ========================================================================= -->
-    <!-- MODAL DE CARGA GLOBAL (SPINNER)                                           -->
+    <!-- MODAL DE ALERTAS ANIMADAS (SE MUESTRA AL INICIAR SESIÓN)                  -->
     <!-- ========================================================================= -->
+    <div id="alerta-modal-visual" class="hidden fixed inset-0 z-[100] flex flex-col items-center justify-center text-white transition-opacity duration-500">
+        <div id="alerta-emoji" class="text-9xl animate-bounce mb-6"></div>
+        <h1 id="alerta-texto" class="text-5xl font-black text-center drop-shadow-lg uppercase tracking-wide px-4"></h1>
+    </div>
+
+    <!-- SVG de Pantalla Quebrada para la alerta de Atraso -->
+    <svg id="cristal-roto" class="hidden fixed inset-0 w-full h-full z-[101] pointer-events-none drop-shadow-xl" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <style>
+            .crack { stroke: rgba(255,255,255,0.9); stroke-width: 0.6; fill: none; }
+            .crack-thin { stroke: rgba(255,255,255,0.5); stroke-width: 0.2; fill: none; }
+        </style>
+        <path class="crack" d="M 50 50 L 10 0 M 50 50 L 90 0 M 50 50 L 0 40 M 50 50 L 100 60 M 50 50 L 30 100 M 50 50 L 80 100" />
+        <path class="crack" d="M 50 50 L 40 40 L 10 20 M 50 50 L 60 45 L 80 20 M 50 50 L 40 60 L 15 70 M 50 50 L 65 60 L 90 85" />
+        <path class="crack-thin" d="M 40 40 L 20 0 M 40 40 L 0 20 M 60 45 L 70 0 M 60 45 L 100 20 M 40 60 L 0 70 M 40 60 L 20 100 M 65 60 L 80 100 M 65 60 L 100 80" />
+        <circle cx="50" cy="50" r="2" fill="rgba(255,255,255,1)"/>
+        <path class="crack" d="M 48 48 L 52 52 M 52 48 L 48 52" />
+    </svg>
+
+    <!-- SPINNER DE CARGA -->
     <div id="loading-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex flex-col items-center justify-center hidden">
         <div class="bg-white p-6 rounded-2xl shadow-2xl flex items-center space-x-4 border border-cyan-100">
             <div class="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full spinner"></div>
@@ -33,9 +66,7 @@
         </div>
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- ZONA 1: VISTA DE AUTENTICACIÓN (LOGIN)                                    -->
-    <!-- ========================================================================= -->
+    <!-- VISTA DE AUTENTICACIÓN (LOGIN) -->
     <div id="view-login" class="flex-grow flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md border-t-4 overlap-theme-border">
             <div class="text-center mb-6">
@@ -64,11 +95,9 @@
         </div>
     </div>
 
-    <!-- ========================================================================= -->
-    <!-- ZONA 2: CONTENEDOR PRINCIPAL POST-LOGIN                                   -->
-    <!-- ========================================================================= -->
+    <!-- CONTENEDOR PRINCIPAL POST-LOGIN -->
     <div id="main-app" class="hidden flex-grow flex flex-col">
-        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
+        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10">
             <div class="flex items-center space-x-3">
                 <div class="flex items-center space-x-2">
                     <span class="text-xl font-black text-gray-800">Claro</span>
@@ -83,8 +112,8 @@
             </div>
         </header>
 
-        <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6">
-            <!-- Navegación dinámica por rol se inyecta aquí -->
+        <nav id="main-nav" class="bg-white border-b px-6 flex space-x-6 z-10">
+            <!-- Navegación dinámica por rol -->
         </nav>
 
         <main class="flex-grow p-6 max-w-6xl mx-auto w-full space-y-6">
@@ -93,13 +122,12 @@
             <!-- VISTAS ADMINISTRADOR (MODO OSCURO)         -->
             <!-- ========================================== -->
             
-            <!-- PESTAÑA ADMIN 1: DASHBOARD GENERAL -->
             <div id="view-admin-dashboard" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                         <div>
                             <h2 class="text-xl font-bold text-white mb-1">Panel Gerencial · Vista Global</h2>
-                            <p class="text-xs text-slate-400">Monitoreo exclusivo administrativo, ranking y analítica global del equipo en el mes en curso.</p>
+                            <p class="text-xs text-slate-400">Monitoreo exclusivo, ranking y alertas para el equipo (Mes en Curso).</p>
                         </div>
                         <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Administrador</span>
                     </div>
@@ -108,17 +136,18 @@
                     
                     <div class="mb-8">
                         <h3 class="font-bold text-slate-200 text-sm mb-3 flex items-center space-x-2">
-                            <span>🏆 Ranking de Cumplimiento (Mes Actual)</span>
+                            <span>🏆 Ranking de Cumplimiento & Emisión de Alertas</span>
                         </h3>
                         <div class="overflow-x-auto border border-slate-800 rounded-lg bg-slate-950/50">
                             <table class="w-full text-left border-collapse text-sm">
                                 <thead>
                                     <tr class="bg-slate-800/80 text-slate-300 text-xs uppercase font-mono">
-                                        <th class="p-3 border-b border-slate-700">Posición</th>
+                                        <th class="p-3 border-b border-slate-700">#</th>
                                         <th class="p-3 border-b border-slate-700">Entrenador</th>
-                                        <th class="p-3 border-b border-slate-700">Días Diligenciados</th>
+                                        <th class="p-3 border-b border-slate-700">Días</th>
                                         <th class="p-3 border-b border-slate-700">Cumplimiento</th>
-                                        <th class="p-3 border-b border-slate-700">Alerta Horas Diario (> 42h)</th>
+                                        <th class="p-3 border-b border-slate-700 text-center">Alerta Horas</th>
+                                        <th class="p-3 border-b border-slate-700">Enviar Alerta a Ejecutivo</th>
                                     </tr>
                                 </thead>
                                 <tbody id="admin-ranking-body" class="divide-y divide-slate-800 text-slate-300"></tbody>
@@ -143,13 +172,13 @@
                 </div>
             </div>
 
-            <!-- PESTAÑA ADMIN 2: RESUMEN SEMANAL POR EJECUTIVO (NUEVA) -->
+            <!-- PESTAÑA ADMIN 2: RESUMEN SEMANAL GRÁFICO -->
             <div id="view-admin-charts" class="hidden space-y-6">
                 <div class="bg-slate-900 text-slate-100 p-6 rounded-xl shadow-xl border border-slate-800 border-t-4 overlap-theme-border">
                     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
                         <div>
                             <h2 class="text-xl font-bold text-white mb-1">Resumen Semanal y Categorías</h2>
-                            <p class="text-xs text-slate-400">Seleccione un ejecutivo y el mes para visualizar sus métricas de tiempo y ocupación por semanas.</p>
+                            <p class="text-xs text-slate-400">Seleccione un ejecutivo y el mes para visualizar sus métricas de ocupación.</p>
                         </div>
                     </div>
                     
@@ -178,11 +207,7 @@
                             </select>
                         </div>
                     </div>
-
-                    <!-- Contenedor donde se inyectarán las gráficas (Semana 1, 2, etc) -->
-                    <div id="charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Generado por JS -->
-                    </div>
+                    <div id="charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
                 </div>
             </div>
 
@@ -190,7 +215,6 @@
             <!-- VISTAS ENTRENADOR (ESTÁNDAR)               -->
             <!-- ========================================== -->
 
-            <!-- FASE 1.2: AVANCE Y PROGRESO -->
             <div id="tab-progress" class="space-y-6">
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 class="text-lg font-bold text-gray-800 mb-4">Indicadores de Cumplimiento (Mes en Curso)</h2>
@@ -211,16 +235,14 @@
                 </div>
             </div>
 
-            <!-- FASE 1.3: TAREAS REGISTRADAS -->
             <div id="tab-tasks" class="hidden space-y-6">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-gray-800">Historial de Actividades por Semana (Mes en Curso)</h2>
+                    <h2 class="text-lg font-bold text-gray-800">Historial de Actividades (Mes en Curso)</h2>
                     <span id="current-device-date" class="text-xs text-gray-500"></span>
                 </div>
                 <div id="weeks-container" class="space-y-6"></div>
             </div>
 
-            <!-- FASE 1.4: NUEVO REGISTRO -->
             <div id="tab-form" class="hidden space-y-6 max-w-3xl mx-auto">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-t-4 overlap-theme-border">
                     <h2 id="form-title" class="text-lg font-bold text-gray-800 mb-6">Registrar Nueva Actividad Diaria</h2>
@@ -248,15 +270,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">Nombre (Master / Entrenador)</label>
+                            <label class="block text-xs font-semibold text-gray-700 mb-1">Nombre</label>
                             <input type="text" id="form-nombre" readonly class="w-full px-3 py-2 border rounded-lg text-sm bg-gray-100 text-gray-700 cursor-not-allowed">
-                        </div>
-
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 bg-gray-50 p-3 rounded-lg border text-xs text-gray-600">
-                            <div><strong>Rol:</strong> <span id="auto-rol">-</span></div>
-                            <div><strong>Región:</strong> <span id="auto-region">-</span></div>
-                            <div><strong>Ciudad:</strong> <span id="auto-ciudad">-</span></div>
-                            <div><strong>Canal:</strong> <span id="auto-canal">-</span></div>
                         </div>
 
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -273,7 +288,7 @@
                                 </select>
                             </div>
                             <div>
-                                <label class="block text-xs font-semibold text-gray-700 mb-1">Actividad / Proceso Formativo</label>
+                                <label class="block text-xs font-semibold text-gray-700 mb-1">Actividad / Proceso</label>
                                 <select id="form-actividad" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
                                     <option value="">Seleccione subcategoría primero...</option>
                                 </select>
@@ -312,7 +327,7 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- ZONA 3: CONTROLADOR Y MOTOR JAVASCRIPT                                    -->
+    <!-- MOTOR JAVASCRIPT                                                          -->
     <!-- ========================================================================= -->
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbxV_YibBCYvacFdKh56BYLxb8-3YHxVe_VaiY-QMUPC9thrDa3hBIKPPh_2rRxZ5pP8bA/exec";
@@ -322,8 +337,6 @@
         let userTasks = [];
         let currentUser = null;
         let liveServerDate = new Date();
-        
-        // Variable para almacenar y destruir las instancias de gráficas cada vez que se filtra
         let chartInstances = []; 
 
         document.getElementById('current-device-date').innerText = `Sincronizado: ${liveServerDate.toLocaleString()}`;
@@ -340,9 +353,7 @@
             document.getElementById('loading-overlay').classList.remove('hidden');
         }
 
-        function hideLoading() {
-            document.getElementById('loading-overlay').classList.add('hidden');
-        }
+        function hideLoading() { document.getElementById('loading-overlay').classList.add('hidden'); }
 
         function getComplianceColorClass(val) {
             if (val <= 70) return "text-red-500 font-black";
@@ -354,9 +365,7 @@
             if (!dateStr) return "";
             let cleanStr = String(dateStr).split('T')[0];
             let parts = cleanStr.split('-');
-            if (parts.length === 3 && parts[0].length === 4) {
-                return `${parts[2]}/${parts[1]}/${parts[0]}`;
-            }
+            if (parts.length === 3 && parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`;
             return cleanStr;
         }
 
@@ -365,62 +374,45 @@
             let str = String(timeStr);
             if (str.includes('T')) {
                 let timePart = str.split('T')[1];
-                if (timePart) {
-                    let hm = timePart.split(':');
-                    if (hm.length >= 2) return `${hm[0]}:${hm[1]}`;
-                }
+                if (timePart) { let hm = timePart.split(':'); if (hm.length >= 2) return `${hm[0]}:${hm[1]}`; }
             }
             let parts = str.split(':');
-            if (parts.length >= 2) {
-                return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
-            }
+            if (parts.length >= 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
             return str;
         }
 
         async function loadCloudDatabase() {
             try {
                 const response = await fetch(`${API_URL}?action=getDatabase`, { method: "GET", cache: "no-store" });
-                if (!response.ok) throw new Error(`Apps Script respondió HTTP ${response.status}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();
-                if (data.status !== "success") throw new Error(data.message || "Apps Script no devolvió status success");
+                if (data.status !== "success") throw new Error(data.message);
 
                 dbPersonas = {};
-                if (Array.isArray(data.personas) && data.personas.length > 1) {
+                if (Array.isArray(data.personas)) {
                     for (let i = 1; i < data.personas.length; i++) {
                         const row = data.personas[i];
-                        if (row[0] !== undefined && row[0] !== "") {
+                        if (row[0]) {
                             const rawRol = String(row[2] || "Entrenador").trim();
-                            const rolNormalizado = rawRol.toLowerCase();
-                            const rolDefinitivo = (rolNormalizado === "admin" || rolNormalizado === "administrador") ? "Admin" : rawRol;
-
+                            const rolDefinitivo = (rawRol.toLowerCase() === "admin" || rawRol.toLowerCase() === "administrador") ? "Admin" : rawRol;
                             dbPersonas[String(row[0]).trim()] = {
-                                cedula: String(row[0]).trim(),
-                                nombre: String(row[1] || "").trim(),
-                                rol: rolDefinitivo,
-                                region: row[3] || "",
-                                ciudad: row[4] || "",
-                                canal: row[5] || ""
+                                cedula: String(row[0]).trim(), nombre: String(row[1] || "").trim(),
+                                rol: rolDefinitivo, region: row[3] || "", ciudad: row[4] || "", canal: row[5] || ""
                             };
                         }
                     }
                 }
 
                 dbListas = {};
-                const cats = data.categorias || [];
-                const subs = data.subcategorias || [];
-                const acts = data.actividades || [];
-                let ultimaCatValida = "";
-                let ultimaSubValida = "";
+                const cats = data.categorias || []; const subs = data.subcategorias || []; const acts = data.actividades || [];
+                let uCat = ""; let uSub = "";
                 const maxLength = Math.max(cats.length, subs.length, acts.length);
-
                 for (let i = 0; i < maxLength; i++) {
                     let cat = cats[i] && cats[i][0] ? String(cats[i][0]).trim() : "";
                     let sub = subs[i] && subs[i][0] ? String(subs[i][0]).trim() : "";
                     let act = acts[i] && acts[i][0] ? String(acts[i][0]).trim() : "";
-                    if (!cat && sub && ultimaCatValida) cat = ultimaCatValida;
-                    else if (cat) ultimaCatValida = cat;
-                    if (!sub && act && ultimaSubValida) sub = ultimaSubValida;
-                    else if (sub) ultimaSubValida = sub;
+                    if (!cat && sub && uCat) cat = uCat; else if (cat) uCat = cat;
+                    if (!sub && act && uSub) sub = uSub; else if (sub) uSub = sub;
                     if (cat && !dbListas[cat]) dbListas[cat] = {};
                     if (cat && sub && !dbListas[cat][sub]) dbListas[cat][sub] = [];
                     if (cat && sub && act && !dbListas[cat][sub].includes(act)) dbListas[cat][sub].push(act);
@@ -428,28 +420,23 @@
                 populateCategorySelect();
 
                 userTasks = [];
-                if (Array.isArray(data.registros) && data.registros.length > 1) {
+                if (Array.isArray(data.registros)) {
                     for (let i = 1; i < data.registros.length; i++) {
                         const r = data.registros[i];
                         if (r[2]) {
-                            const nombreRegistro = String(r[6] || "").trim();
-                            const personaRegistro = Object.values(dbPersonas).find(p => p.nombre.trim() === nombreRegistro);
+                            const n = String(r[6] || "").trim();
+                            const p = Object.values(dbPersonas).find(x => x.nombre.trim() === n);
                             userTasks.push({
-                                rowIndex: i + 1,
-                                estado: r[0], codRef: r[1], fecha: r[2], mes: r[3], anio: r[4], dia: r[5],
-                                nombre: nombreRegistro, rol: r[7], region: r[8], ciudad: r[9], canal: r[10],
+                                rowIndex: i + 1, estado: r[0], codRef: r[1], fecha: r[2], mes: r[3], anio: r[4], dia: r[5],
+                                nombre: n, rol: r[7], region: r[8], ciudad: r[9], canal: r[10],
                                 categoria: r[11], subcategoria: r[12], actividad: r[13], horaInicio: r[14],
-                                horaFin: r[15], totalHoras: r[16], observaciones: r[17],
-                                userCedula: personaRegistro ? personaRegistro.cedula : ""
+                                horaFin: r[15], totalHoras: r[16], observaciones: r[17], userCedula: p ? p.cedula : ""
                             });
                         }
                     }
                 }
                 return true;
-            } catch (err) {
-                console.error("Error cargando base de datos de la nube:", err);
-                return false;
-            }
+            } catch (err) { console.error(err); return false; }
         }
         loadCloudDatabase();
 
@@ -477,13 +464,10 @@
         function filterEndHours() {
             const startVal = document.getElementById('form-horainicio').value;
             const endSelect = document.getElementById('form-horafin');
-            if (!endSelect) return;
+            if (!endSelect || !startVal) return;
             endSelect.innerHTML = '<option value="">Seleccione hora fin...</option>';
-            if (!startVal) return;
-
             const [sh, sm] = startVal.split(':').map(Number);
             const startTotalMinutes = sh * 60 + sm;
-
             for (let h = 6; h <= 18; h++) {
                 for (let m of [0, 30]) {
                     if (h === 18 && m > 0) break;
@@ -502,28 +486,19 @@
             const pass = document.getElementById('login-pass').value.trim();
 
             document.getElementById('login-error').classList.add('hidden');
-            showLoading("Conectando con la base de datos...");
-            const conexionCorrecta = await loadCloudDatabase();
+            showLoading("Conectando...");
+            const ok = await loadCloudDatabase();
             hideLoading();
-
-            if (!conexionCorrecta) {
-                const errorEl = document.getElementById('login-error');
-                errorEl.innerText = "No fue posible cargar la base de datos. Verifica la implementación de Apps Script e inténtalo de nuevo.";
-                errorEl.classList.remove('hidden');
-                return;
-            }
+            if (!ok) { document.getElementById('login-error').innerText = "Error cargando BD."; document.getElementById('login-error').classList.remove('hidden'); return; }
 
             if (user === pass && dbPersonas[user]) {
-                currentUser = dbPersonas[user];
-                currentUser.cedula = user;
+                currentUser = dbPersonas[user]; currentUser.cedula = user;
                 document.getElementById('view-login').classList.add('hidden');
                 document.getElementById('main-app').classList.remove('hidden');
                 document.getElementById('user-display-name').innerText = currentUser.nombre;
-
                 const nav = document.getElementById('main-nav');
 
                 if (currentUser.rol === "Admin") {
-                    // Pestañas Administrador
                     nav.innerHTML = `
                         <button onclick="switchAdminTab('dashboard')" id="nav-admin-dashboard" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">📊 Dashboard Global</button>
                         <button onclick="switchAdminTab('charts')" id="nav-admin-charts" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">📈 Filtro por Gráficas</button>
@@ -535,10 +510,9 @@
                     document.getElementById('view-admin-dashboard').classList.remove('hidden');
                     document.getElementById('view-admin-charts').classList.add('hidden');
                     
-                    populateAdminFilters(); // Llenamos selectores de gráficas
+                    populateAdminFilters();
                     renderAdminDashboard();
                 } else {
-                    // Pestañas Entrenador
                     nav.innerHTML = `
                         <button onclick="switchTab('progress')" id="nav-progress" class="py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition">1.2 Avance y Progreso</button>
                         <button onclick="switchTab('tasks')" id="nav-tasks" class="py-3 text-sm font-semibold text-gray-500 hover:text-gray-800 transition">1.3 Tareas Registradas</button>
@@ -548,18 +522,16 @@
                     document.getElementById('view-admin-charts').classList.add('hidden');
                     document.getElementById('tab-progress').classList.remove('hidden');
                     document.getElementById('form-nombre').value = currentUser.nombre;
-                    document.getElementById('auto-rol').innerText = currentUser.rol;
-                    document.getElementById('auto-region').innerText = currentUser.region;
-                    document.getElementById('auto-ciudad').innerText = currentUser.ciudad;
-                    document.getElementById('auto-canal').innerText = currentUser.canal;
-
+                    
                     updateProgressView();
                     renderWeeksTasks();
+                    
+                    // ======== MAGIA: DISPARA LAS ALERTAS AL INICIAR SESIÓN =======
+                    setTimeout(verificarAlertasParaEntrenador, 300);
                 }
             } else {
-                const errorEl = document.getElementById('login-error');
-                errorEl.innerText = "Cédula no registrada o credenciales incorrectas.";
-                errorEl.classList.remove('hidden');
+                document.getElementById('login-error').innerText = "Credenciales incorrectas.";
+                document.getElementById('login-error').classList.remove('hidden');
             }
         }
 
@@ -568,7 +540,6 @@
             document.getElementById('main-app').classList.add('hidden');
             document.getElementById('view-login').classList.remove('hidden');
             document.getElementById('login-form').reset();
-            document.getElementById('login-error').classList.add('hidden');
         }
 
         function switchTab(tab) {
@@ -597,23 +568,116 @@
         }
 
         // ==============================================================
-        // LÓGICA DE GRÁFICAS ADMINISTRATIVAS POR EJECUTIVO
+        // ENVIÓ Y RECEPCIÓN DE ALERTAS INVISIBLES
         // ==============================================================
-        
+
+        async function enviarAlertaAdmin(nombreEntrenador, selectId) {
+            const tipoAlerta = document.getElementById(selectId).value;
+            if(!confirm(`¿Seguro que deseas enviar la alerta a ${nombreEntrenador}?`)) return;
+
+            // Creamos una "Tarea Falsa" que actúa como un sobre de mensaje para el entrenador
+            const payload = new URLSearchParams({
+                action: "saveTask", estado: "ALERTA", codRef: "ALERTA", 
+                fecha: new Date().toISOString().split('T')[0],
+                mes: "N/A", anio: "2026", dia: "N/A", nombre: nombreEntrenador,
+                rol: "Entrenador", region: "N/A", ciudad: "N/A", canal: "N/A",
+                categoria: "ALERTA_ADMIN", subcategoria: "SISTEMA", actividad: tipoAlerta,
+                horaInicio: "00:00", horaFin: "00:00", totalHoras: "0", observaciones: "Enviado por Admin"
+            });
+
+            showLoading("Enviando alerta a la nube...");
+            try {
+                const res = await fetch(API_URL, { method: "POST", body: payload });
+                const result = await readApiResponse(res);
+                hideLoading();
+                if (result.status === "success") {
+                    alert("¡Alerta encolada exitosamente!");
+                    await loadCloudDatabase(); // Recargamos para que el admin también la tenga registrada
+                } else { alert("Error: " + result.message); }
+            } catch (e) { hideLoading(); alert("Error enviando alerta."); }
+        }
+
+        function verificarAlertasParaEntrenador() {
+            // Buscamos todas las alertas dirigidas a este usuario
+            const misAlertas = userTasks.filter(t => t.nombre === currentUser.nombre && t.categoria === "ALERTA_ADMIN");
+            if (misAlertas.length === 0) return;
+
+            // Ordenamos para tomar la más reciente (la de mayor rowIndex)
+            misAlertas.sort((a, b) => b.rowIndex - a.rowIndex);
+            const alertaNueva = misAlertas[0];
+            
+            // Creamos un ID único para esta alerta en el almacenamiento local del navegador
+            const alertIdStorage = `vista_alerta_${alertaNueva.rowIndex}`;
+            let vistas = parseInt(localStorage.getItem(alertIdStorage) || "0");
+            
+            // Si el entrenador la ha visto menos de 3 veces (El inicio de hoy + 2 más)
+            if (vistas < 3) {
+                ejecutarAnimacionAlerta(alertaNueva.actividad);
+                localStorage.setItem(alertIdStorage, vistas + 1);
+            }
+        }
+
+        function ejecutarAnimacionAlerta(tipo) {
+            const modal = document.getElementById('alerta-modal-visual');
+            const texto = document.getElementById('alerta-texto');
+            const emoji = document.getElementById('alerta-emoji');
+            
+            modal.classList.remove('hidden');
+
+            if (tipo === 'felicidades') {
+                emoji.innerText = '🤩🎉';
+                texto.innerText = '¡Felicidades, estás al día!';
+                modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-emerald-900/95 text-white transition-opacity duration-500";
+                
+                // Lanza confetti
+                var duration = 3000; var end = Date.now() + duration;
+                (function frame() {
+                    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                }());
+                
+                setTimeout(() => modal.classList.add('hidden'), 4500);
+            } 
+            else if (tipo === 'atraso') {
+                emoji.innerText = '😡';
+                texto.innerText = '¡Atraso en el Planeador!';
+                modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-red-950/95 text-white transition-opacity duration-500";
+                
+                // Muestra SVG de pantalla quebrada
+                const cristal = document.getElementById('cristal-roto');
+                cristal.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    cristal.classList.add('hidden');
+                }, 4000);
+            } 
+            else if (tipo === 'animo') {
+                emoji.innerText = '🥺';
+                texto.innerText = '¡Ánimo, te falta poco!';
+                modal.className = "fixed inset-0 z-[100] flex flex-col items-center justify-center bg-blue-900/95 text-white transition-opacity duration-500";
+                
+                // Efecto de vibración en la pantalla entera
+                document.body.classList.add('animate-vibrate');
+                
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                    document.body.classList.remove('animate-vibrate');
+                }, 4000);
+            }
+        }
+
+        // ==============================================================
+        // VISTAS ADMIN: DASHBOARD Y GRÁFICAS (Excluyendo las Alertas Falsas)
+        // ==============================================================
+
         function populateAdminFilters() {
             const execSelect = document.getElementById('chart-filter-exec');
             execSelect.innerHTML = '<option value="todos">Todos los Ejecutivos</option>';
-            
-            // Obtenemos todos los entrenadores
             const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
-            trainers.forEach(cedula => {
-                const p = dbPersonas[cedula];
-                execSelect.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
-            });
-
-            // Establecemos el mes actual por defecto
-            const monthSelect = document.getElementById('chart-filter-month');
-            monthSelect.value = liveServerDate.getMonth();
+            trainers.forEach(c => execSelect.innerHTML += `<option value="${dbPersonas[c].nombre}">${dbPersonas[c].nombre}</option>`);
+            document.getElementById('chart-filter-month').value = liveServerDate.getMonth();
         }
 
         function renderWeeklyCharts() {
@@ -621,17 +685,14 @@
             const selectedMonth = parseInt(document.getElementById('chart-filter-month').value);
             const currentYear = liveServerDate.getFullYear();
 
-            // 1. Destruimos las gráficas viejas para evitar sobreposición
-            chartInstances.forEach(chart => chart.destroy());
-            chartInstances = [];
+            chartInstances.forEach(c => c.destroy()); chartInstances = [];
+            const container = document.getElementById('charts-container'); container.innerHTML = '';
 
-            const container = document.getElementById('charts-container');
-            container.innerHTML = '';
-
-            // 2. Filtramos las tareas según la selección
             const filteredTasks = userTasks.filter(t => {
+                // FILTRO CLAVE: Excluir las "Alertas" para que no dañen las estadísticas
+                if(t.categoria === "ALERTA_ADMIN") return false;
+
                 const matchExec = (selectedExec === 'todos' || t.nombre === selectedExec);
-                
                 let matchDate = false;
                 let cleanStr = String(t.fecha).split('T')[0];
                 let parts = cleanStr.split('-');
@@ -647,407 +708,47 @@
                 return;
             }
 
-            // 3. Agrupamos los datos por semana
             const weeksData = {};
             filteredTasks.forEach(t => {
                 const w = getWeekOfMonth(t.fecha);
-                if (!weeksData[w]) {
-                    weeksData[w] = { totalHorasSemana: 0, categorias: {} };
-                }
+                if (!weeksData[w]) weeksData[w] = { totalHorasSemana: 0, categorias: {} };
                 const hrs = parseFloat(t.totalHoras) || 0;
                 weeksData[w].totalHorasSemana += hrs;
-                // Sumamos las horas de la categoría en esa semana
                 weeksData[w].categorias[t.categoria] = (weeksData[w].categorias[t.categoria] || 0) + hrs;
             });
 
-            // 4. Construimos el HTML e inicializamos Chart.js para cada semana
             Object.keys(weeksData).sort().forEach(weekNum => {
-                const week = weeksData[weekNum];
-                const canvasId = `chart-week-${weekNum}`;
-
+                const week = weeksData[weekNum]; const canvasId = `chart-week-${weekNum}`;
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-slate-800/40 p-4 rounded-xl border border-slate-700/60 shadow-lg";
                 wrapper.innerHTML = `
                     <div class="flex justify-between items-center mb-4 border-b border-slate-700/50 pb-2">
                         <h3 class="font-bold text-cyan-400 text-lg">Semana ${weekNum}</h3>
-                        <span class="bg-slate-900 text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-600 font-mono">
-                            Total: ${week.totalHorasSemana.toFixed(1)} hrs
-                        </span>
+                        <span class="bg-slate-900 text-slate-300 text-xs px-2.5 py-1 rounded border border-slate-600 font-mono">Total: ${week.totalHorasSemana.toFixed(1)} hrs</span>
                     </div>
-                    <div class="relative h-56 w-full">
-                        <canvas id="${canvasId}"></canvas>
-                    </div>
-                `;
+                    <div class="relative h-56 w-full"><canvas id="${canvasId}"></canvas></div>`;
                 container.appendChild(wrapper);
 
-                const ctx = document.getElementById(canvasId).getContext('2d');
-                
-                // Extraemos las etiquetas (categorías) y los valores (horas) para la gráfica
-                const labels = Object.keys(week.categorias);
-                const data = Object.values(week.categorias);
-
-                const newChart = new Chart(ctx, {
-                    type: 'bar', // Tipo de gráfica de barras horizontales o verticales
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Horas Invertidas',
-                            data: data,
-                            backgroundColor: '#00A9CE', // Color Cyan Overlap
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: { label: function(context) { return context.parsed.y + ' hrs'; } }
-                            }
-                        },
-                        scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                ticks: { color: '#94a3b8' }, 
-                                grid: { color: '#334155' } 
-                            },
-                            x: { 
-                                ticks: { color: '#94a3b8' }, 
-                                grid: { display: false } 
-                            }
-                        }
-                    }
+                const newChart = new Chart(document.getElementById(canvasId).getContext('2d'), {
+                    type: 'bar',
+                    data: { labels: Object.keys(week.categorias), datasets: [{ label: 'Horas', data: Object.values(week.categorias), backgroundColor: '#00A9CE', borderRadius: 4 }] },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }, x: { ticks: { color: '#94a3b8' }, grid: { display: false } } } }
                 });
-                
-                chartInstances.push(newChart); // La guardamos para poder borrarla al cambiar el filtro
-            });
-        }
-
-        // ==============================================================
-        // FUNCIONES DE FORMULARIO Y REGISTROS (Entrenador)
-        // ==============================================================
-
-        function autofillDateInfo() {
-            const dateVal = document.getElementById('form-fecha').value;
-            if (!dateVal) return;
-            const dateObj = new Date(dateVal + 'T00:00:00');
-            const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
-            const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-            document.getElementById('auto-mes').innerText = meses[dateObj.getMonth()];
-            document.getElementById('auto-anio').innerText = dateObj.getFullYear();
-            const dayIndex = dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1;
-            document.getElementById('auto-dia').innerText = dias[dayIndex];
-        }
-
-        function checkDateAndAutofill() {
-            const dateVal = document.getElementById('form-fecha').value;
-            autofillDateInfo();
-            if (festivosColombia2026.includes(dateVal)) {
-                alert("📅 La fecha seleccionada coincide con un DÍA FESTIVO. Se registrará automáticamente con 8.4 horas de novedad.");
-                document.getElementById('form-categoria').value = "Ausencias y Permisos Laborales";
-                updateSubcategories();
-                document.getElementById('form-subcategoria').value = "Ausencias y Permisos Laborales";
-                updateActivities();
-                document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales";
-                lockForStandardHours(8.4);
-            } else { unlockHours(); }
-        }
-
-        function handleCategoryChange() { updateSubcategories(); unlockHours(); }
-
-        function handleSubcategoryChange() {
-            const cat = document.getElementById('form-categoria').value;
-            const sub = document.getElementById('form-subcategoria').value;
-            updateActivities();
-            const ausenciasPermitidas = ["Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"];
-            if (cat === "Ausencias y Permisos Laborales" || ausenciasPermitidas.includes(sub)) { lockForStandardHours(8.4); } 
-            else { unlockHours(); }
-        }
-
-        function lockForStandardHours(hoursValue) {
-            const container = document.getElementById('hours-container');
-            container.innerHTML = `
-                <div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center">
-                    <span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span>
-                    <input type="hidden" id="form-horainicio" value="08:00">
-                    <input type="hidden" id="form-horafin" value="16:24">
-                </div>
-            `;
-        }
-
-        function unlockHours() {
-            const container = document.getElementById('hours-container');
-            if (container.querySelector('input[type="hidden"]')) {
-                container.innerHTML = `
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label>
-                        <select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label>
-                        <select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white">
-                            <option value="">Seleccione hora inicio primero...</option>
-                        </select>
-                    </div>
-                `;
-                populateStartHours();
-            }
-        }
-
-        function updateSubcategories() {
-            const cat = document.getElementById('form-categoria').value;
-            const subSelect = document.getElementById('form-subcategoria');
-            subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>';
-            document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
-            if (cat && dbListas[cat]) {
-                Object.keys(dbListas[cat]).forEach(sub => { subSelect.innerHTML += `<option value="${sub}">${sub}</option>`; });
-            }
-        }
-
-        function updateActivities() {
-            const cat = document.getElementById('form-categoria').value;
-            const sub = document.getElementById('form-subcategoria').value;
-            const actSelect = document.getElementById('form-actividad');
-            actSelect.innerHTML = '<option value="">Seleccione actividad...</option>';
-            if (cat && sub && dbListas[cat][sub]) {
-                dbListas[cat][sub].forEach(act => { actSelect.innerHTML += `<option value="${act}">${act}</option>`; });
-            }
-        }
-
-        async function readApiResponse(response) {
-            const rawText = await response.text();
-            try { return JSON.parse(rawText); } 
-            catch (_) { throw new Error(`Respuesta no válida de Apps Script (HTTP ${response.status}).`); }
-        }
-
-        async function saveActivity(event) {
-            event.preventDefault();
-            const estado = document.getElementById('form-estado').value;
-            const fecha = document.getElementById('form-fecha').value;
-            const mes = document.getElementById('auto-mes').innerText;
-            const anio = document.getElementById('auto-anio').innerText;
-            const dia = document.getElementById('auto-dia').innerText;
-            const nombre = currentUser.nombre;
-            const rol = currentUser.rol;
-            const region = currentUser.region;
-            const ciudad = currentUser.ciudad;
-            const canal = currentUser.canal;
-            const categoria = document.getElementById('form-categoria').value;
-            const subcategoria = document.getElementById('form-subcategoria').value;
-            const actividad = document.getElementById('form-actividad').value;
-            const observaciones = document.getElementById('form-observaciones').value;
-
-            let totalHoras = 0; let horaInicio = ""; let horaFin = "";
-            const hiddenStart = document.getElementById('form-horainicio');
-            if (hiddenStart && hiddenStart.type === "hidden") {
-                totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24";
-            } else {
-                horaInicio = document.getElementById('form-horainicio').value;
-                horaFin = document.getElementById('form-horafin').value;
-                const [h1, m1] = horaInicio.split(':').map(Number);
-                const [h2, m2] = horaFin.split(':').map(Number);
-                totalHoras = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
-                if (totalHoras <= 0) { alert("La hora final debe ser mayor a la hora de inicio."); return; }
-            }
-
-            const payload = new URLSearchParams({
-                action: "saveTask", estado: estado, codRef: estado, fecha: fecha, mes: mes, anio: anio,
-                dia: dia, nombre: nombre, rol: rol, region: region, ciudad: ciudad, canal: canal,
-                categoria: categoria, subcategoria: subcategoria, actividad: actividad,
-                horaInicio: horaInicio, horaFin: horaFin, totalHoras: totalHoras.toFixed(1), observaciones: observaciones
-            });
-
-            showLoading("Guardando actividad en la nube...");
-            try {
-                const res = await fetch(API_URL, { method: "POST", body: payload });
-                const result = await readApiResponse(res);
-                hideLoading();
-                if (result.status === "success") {
-                    alert("¡Actividad guardada en la nube con éxito!");
-                    await loadCloudDatabase();
-                    resetFormToNew(); renderWeeksTasks(); updateProgressView(); switchTab('tasks');
-                } else { alert(`Error: ${result.message}`); }
-            } catch (e) {
-                hideLoading(); console.error(e); alert(`No se pudo guardar. Detalle: ${e.message}`);
-            }
-        }
-
-        async function deleteTask(rowIndex) {
-            if (!confirm("¿Estás seguro de que deseas eliminar este registro de la base de datos?")) return;
-            showLoading("Eliminando registro de la nube...");
-            try {
-                const payload = new URLSearchParams({ action: "deleteTask", rowIndex: rowIndex });
-                const res = await fetch(API_URL, { method: "POST", body: payload });
-                const result = await readApiResponse(res);
-                hideLoading();
-                if (result.status === "success") {
-                    alert("¡Registro eliminado con éxito!");
-                    await loadCloudDatabase(); renderWeeksTasks(); updateProgressView();
-                } else { alert(`Error: ${result.message}`); }
-            } catch (e) { hideLoading(); console.error(e); alert(`No se pudo eliminar. Detalle: ${e.message}`); }
-        }
-
-        function resetFormToNew() {
-            document.getElementById('edit-index').value = -1;
-            document.getElementById('form-title').innerText = "Registrar Nueva Actividad Diaria";
-            document.getElementById('activity-form').reset();
-            document.getElementById('form-nombre').value = currentUser.nombre;
-            unlockHours();
-        }
-
-        function getWeekOfMonth(dateString) {
-            const cleanD = String(dateString).split('T')[0];
-            const date = new Date(cleanD + 'T00:00:00');
-            const day = date.getDate();
-            return Math.ceil(day / 7);
-        }
-
-        function countBusinessDaysUntilNow() {
-            const year = liveServerDate.getFullYear();
-            const month = liveServerDate.getMonth();
-            const todayDate = liveServerDate.getDate();
-            let count = 0;
-            for (let d = 1; d <= todayDate; d++) {
-                const tempDate = new Date(year, month, d);
-                const dayOfWeek = tempDate.getDay();
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) count++;
-            }
-            return count;
-        }
-
-        // ==============================================================
-        // FUNCIONES DE VISTA ENTRENADOR Y ADMIN DASHBOARD (Con filtro de mes)
-        // ==============================================================
-
-        function renderWeeksTasks() {
-            const container = document.getElementById('weeks-container');
-            container.innerHTML = '';
-            const currentMonth = liveServerDate.getMonth();
-            const currentYear = liveServerDate.getFullYear();
-
-            const myTasks = userTasks.filter(t => {
-                if (t.nombre !== currentUser.nombre) return false;
-                let cleanStr = String(t.fecha).split('T')[0];
-                let parts = cleanStr.split('-');
-                if (parts.length === 3 && parts[0].length === 4) {
-                    let taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                    return taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear;
-                }
-                return false;
-            });
-
-            if (myTasks.length === 0) {
-                container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas en este mes.</div>`;
-                return;
-            }
-
-            const weeksMap = {};
-            myTasks.forEach((t) => {
-                const weekNum = getWeekOfMonth(t.fecha);
-                if (!weeksMap[weekNum]) weeksMap[weekNum] = [];
-                weeksMap[weekNum].push(t);
-            });
-
-            Object.keys(weeksMap).sort().forEach(weekNum => {
-                let rowsHtml = '';
-                weeksMap[weekNum].forEach(t => {
-                    const cleanDate = formatDateClean(t.fecha);
-                    const cleanStart = formatTimeClean(t.horaInicio);
-                    const cleanEnd = formatTimeClean(t.horaFin);
-                    rowsHtml += `
-                        <tr class="hover:bg-gray-50">
-                            <td class="p-3 border-b"><span class="px-2 py-1 text-xs rounded font-semibold ${t.estado === 'Ejecutado' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'}">${t.estado}</span></td>
-                            <td class="p-3 border-b">${cleanDate}</td>
-                            <td class="p-3 border-b">${cleanStart} - ${cleanEnd} (${t.totalHoras} hrs)</td>
-                            <td class="p-3 border-b">${t.categoria}</td>
-                            <td class="p-3 border-b">${t.subcategoria}</td>
-                            <td class="p-3 border-b">${t.actividad}</td>
-                            <td class="p-3 border-b text-center">
-                                <button onclick="deleteTask(${t.rowIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg transition inline-flex items-center">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-
-                container.innerHTML += `
-                    <div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4">
-                        <div class="bg-gray-100 px-6 py-3 border-b flex justify-between items-center">
-                            <h3 class="font-bold text-gray-700 text-sm">📅 ${weekNum}ª Semana del Mes</h3>
-                            <span class="text-xs text-gray-500">${weeksMap[weekNum].length} registro(s)</span>
-                        </div>
-                        <div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm"><tbody class="divide-y divide-gray-200">${rowsHtml}</tbody></table></div>
-                    </div>
-                `;
-            });
-        }
-
-        function updateProgressView() {
-            const businessDaysTarget = countBusinessDaysUntilNow();
-            const currentMonthIndex = liveServerDate.getMonth();
-            const currentYearNum = liveServerDate.getFullYear();
-
-            const myTasks = userTasks.filter(t => {
-                if (t.nombre !== currentUser.nombre) return false;
-                let cleanStr = String(t.fecha).split('T')[0];
-                let parts = cleanStr.split('-');
-                if (parts.length === 3 && parts[0].length === 4) {
-                    let taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
-                    return taskDate.getMonth() === currentMonthIndex && taskDate.getFullYear() === currentYearNum;
-                }
-                return false;
-            });
-
-            const uniqueDatesWorked = [...new Set(myTasks.map(t => String(t.fecha).split('T')[0]))];
-            const uniqueDaysCount = uniqueDatesWorked.length;
-
-            document.getElementById('stat-days').innerText = `${uniqueDaysCount} / ${businessDaysTarget} hábiles`;
-            const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDaysCount / businessDaysTarget) * 100)) : 0;
-            const statPercentageEl = document.getElementById('stat-percentage');
-            statPercentageEl.innerText = compliance + '%';
-            statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
-
-            const weeklyHoursMap = {};
-            myTasks.forEach(t => {
-                const w = getWeekOfMonth(t.fecha);
-                if (!weeklyHoursMap[w]) weeklyHoursMap[w] = 0;
-                weeklyHoursMap[w] += parseFloat(t.totalHoras);
-            });
-
-            const weeklyContainer = document.getElementById('stat-weekly-hours');
-            weeklyContainer.innerHTML = '';
-            if (Object.keys(weeklyHoursMap).length === 0) {
-                weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas en este mes</span>`;
-                return;
-            }
-
-            Object.keys(weeklyHoursMap).sort().forEach(w => {
-                const hrs = weeklyHoursMap[w];
-                let alertHtml = hrs > 42 ? `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: (${hrs.toFixed(1)} hrs)</div>` : '';
-                weeklyContainer.innerHTML += `<div class="mb-2"><span class="text-gray-700">Semana ${w}:</span> <span class="font-black">${hrs.toFixed(1)} hrs</span>${alertHtml}</div>`;
+                chartInstances.push(newChart);
             });
         }
 
         function renderAdminDashboard() {
             const businessDaysTarget = countBusinessDaysUntilNow();
-            const rankingBody = document.getElementById('admin-ranking-body');
-            rankingBody.innerHTML = '';
-
+            const rankingBody = document.getElementById('admin-ranking-body'); rankingBody.innerHTML = '';
             const trainers = Object.keys(dbPersonas).filter(k => dbPersonas[k].rol !== "Admin");
-            let teamStats = [];
-            let totalAdminReunionesCount = 0;
-            
-            const currentMonthIndex = liveServerDate.getMonth();
-            const currentYearNum = liveServerDate.getFullYear();
+            let teamStats = []; let totalAdminReunionesCount = 0;
+            const currentMonthIndex = liveServerDate.getMonth(); const currentYearNum = liveServerDate.getFullYear();
 
-            // Filtramos las tareas globales SOLO al mes actual para que el ranking sea real al mes
+            // Excluir "ALERTA_ADMIN" de los reportes gerenciales
             const monthTasks = userTasks.filter(t => {
-                let cleanStr = String(t.fecha).split('T')[0];
-                let parts = cleanStr.split('-');
+                if(t.categoria === "ALERTA_ADMIN") return false;
+                let cleanStr = String(t.fecha).split('T')[0]; let parts = cleanStr.split('-');
                 if (parts.length === 3 && parts[0].length === 4) {
                     let dObj = new Date(parts[0], parts[1] - 1, parts[2]);
                     return dObj.getMonth() === currentMonthIndex && dObj.getFullYear() === currentYearNum;
@@ -1059,10 +760,8 @@
             trainers.forEach(cedula => {
                 const p = dbPersonas[cedula];
                 const pTasks = monthTasks.filter(t => t.nombre === p.nombre);
-                
                 const uniqueDays = [...new Set(pTasks.map(t => String(t.fecha).split('T')[0]))].length;
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
-
                 const dailyHoursMap = {};
                 pTasks.forEach(t => {
                     const cleanD = formatDateClean(t.fecha);
@@ -1070,92 +769,218 @@
                     dailyHoursMap[cleanD] += parseFloat(t.totalHoras);
                     if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") totalAdminReunionesCount++;
                 });
-
                 let hasOverload = false;
                 Object.keys(dailyHoursMap).forEach(date => { if (dailyHoursMap[date] > 42) hasOverload = true; });
-
                 teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
             });
-
-            const alertContainer = document.getElementById('admin-admin-alert-container');
-            const adminPercentage = totalGeneralTasks > 0 ? (totalAdminReunionesCount / totalGeneralTasks) * 100 : 0;
-
-            if (adminPercentage >= 35) {
-                alertContainer.classList.remove('hidden');
-                alertContainer.innerHTML = `
-                    <div class="bg-amber-950/80 border border-amber-600/50 text-amber-200 p-4 rounded-xl flex items-start space-x-3 shadow-lg">
-                        <span class="text-xl">⚠️</span>
-                        <div>
-                            <h4 class="font-bold text-amber-300 text-sm">Alerta Operativa (Mes en Curso): Alto uso en Categoría Administrativo / Reuniones</h4>
-                            <p class="text-xs text-amber-200/80 mt-0.5">El equipo registra un <strong>${adminPercentage.toFixed(1)}%</strong> de su tiempo en juntas y procesos administrativos.</p>
-                        </div>
-                    </div>
-                `;
-            } else { alertContainer.classList.add('hidden'); }
 
             teamStats.sort((a, b) => b.compliance - a.compliance);
             teamStats.forEach((st, idx) => {
                 const colorClass = getComplianceColorClass(st.compliance);
+                
+                // SE AGREGA LA COLUMNA DE SELECTOR Y BOTÓN DE ALERTA
                 rankingBody.innerHTML += `
-                    <tr class="hover:bg-slate-800/50 transition">
-                        <td class="p-3 border-b border-slate-800 font-bold text-slate-400">#${idx + 1}</td>
-                        <td class="p-3 border-b border-slate-800 font-medium text-white">${st.nombre}</td>
-                        <td class="p-3 border-b border-slate-800">${st.uniqueDays} días</td>
-                        <td class="p-3 border-b border-slate-800 ${colorClass}">${st.compliance}%</td>
-                        <td class="p-3 border-b border-slate-800">
-                            ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso > 42h/día</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
+                    <tr class="hover:bg-slate-800/50 transition border-b border-slate-700/50">
+                        <td class="p-3 font-bold text-slate-400">#${idx + 1}</td>
+                        <td class="p-3 font-medium text-white">${st.nombre}</td>
+                        <td class="p-3">${st.uniqueDays} días</td>
+                        <td class="p-3 ${colorClass}">${st.compliance}%</td>
+                        <td class="p-3 text-center">
+                            ${st.hasOverload ? '<span class="bg-red-950/80 text-red-400 border border-red-700/50 px-2 py-1 rounded text-xs font-bold">⚠️ Exceso</span>' : '<span class="text-emerald-400 text-xs font-semibold">Normal</span>'}
+                        </td>
+                        <td class="p-3">
+                            <div class="flex items-center space-x-2">
+                                <select id="alerta-sel-${idx}" class="text-[11px] font-semibold text-slate-900 p-1.5 rounded bg-slate-200 border-none focus:ring-0">
+                                    <option value="felicidades">🎉 Felicidades (Al día)</option>
+                                    <option value="atraso">🤬 Atraso (Pantalla Rota)</option>
+                                    <option value="animo">🥺 Ánimo (Vibración)</option>
+                                </select>
+                                <button onclick="enviarAlertaAdmin('${st.nombre}', 'alerta-sel-${idx}')" class="bg-cyan-600 hover:bg-cyan-500 text-white text-[11px] px-3 py-1.5 rounded transition-colors font-bold shadow-md">Enviar</button>
+                            </div>
                         </td>
                     </tr>
                 `;
             });
 
-            // Para los Top 5, usamos solo los del mes para que sea coherente
             renderTopListWithExecutantes('categoria', 'top-categories', monthTasks);
             renderTopListWithExecutantes('subcategoria', 'top-subcategories', monthTasks);
             renderTopListWithExecutantes('actividad', 'top-activities', monthTasks);
         }
 
-        function renderTopListWithExecutantes(property, elementId, taskArray) {
-            const counts = {}; const itemExecutantes = {};
-            taskArray.forEach(t => {
-                const val = t[property];
-                if (val) {
-                    counts[val] = (counts[val] || 0) + 1;
-                    if (!itemExecutantes[val]) itemExecutantes[val] = new Set();
-                    if (t.nombre) itemExecutantes[val].add(t.nombre);
+        // ==============================================================
+        // VISTAS ENTRENADOR Y FORMULARIOS (Excluyendo Alertas Falsas)
+        // ==============================================================
+
+        function renderWeeksTasks() {
+            const container = document.getElementById('weeks-container'); container.innerHTML = '';
+            const currentMonth = liveServerDate.getMonth(); const currentYear = liveServerDate.getFullYear();
+
+            const myTasks = userTasks.filter(t => {
+                if (t.nombre !== currentUser.nombre) return false;
+                // Excluir "ALERTA_ADMIN" del historial visual
+                if(t.categoria === "ALERTA_ADMIN") return false;
+
+                let cleanStr = String(t.fecha).split('T')[0]; let parts = cleanStr.split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    let taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    return taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear;
                 }
+                return false;
             });
 
-            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
-            const el = document.getElementById(elementId);
-            el.innerHTML = '';
-            if (sorted.length === 0) { el.innerHTML = `<li class="text-slate-500">Sin registros suficientes</li>`; return; }
+            if (myTasks.length === 0) { container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas en este mes.</div>`; return; }
 
-            sorted.forEach((item, index) => {
-                const executorsList = Array.from(itemExecutantes[item] || []).join(', ');
-                const li = document.createElement('li');
-                li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
-                li.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-slate-200">${index + 1}. ${item}</span>
-                        <strong class="overlap-theme-text font-mono">${counts[item]} usos</strong>
-                    </div>
-                    <div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed">
-                        <p class="font-semibold text-cyan-400 mb-1">👥 Todos los ejecutivos:</p>
-                        <p class="text-slate-300 font-normal">${executorsList || 'Ninguno registrado'}</p>
-                    </div>
-                `;
-                let mobileTimeout = null;
-                li.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const tooltip = li.querySelector('div.absolute');
-                    if (tooltip) {
-                        tooltip.classList.remove('hidden'); tooltip.classList.add('block');
-                        if (mobileTimeout) clearTimeout(mobileTimeout);
-                        mobileTimeout = setTimeout(() => { tooltip.classList.remove('block'); tooltip.classList.add('hidden'); }, 8000);
-                    }
+            const weeksMap = {};
+            myTasks.forEach((t) => { const weekNum = getWeekOfMonth(t.fecha); if (!weeksMap[weekNum]) weeksMap[weekNum] = []; weeksMap[weekNum].push(t); });
+            Object.keys(weeksMap).sort().forEach(weekNum => {
+                let rowsHtml = '';
+                weeksMap[weekNum].forEach(t => {
+                    rowsHtml += `
+                        <tr class="hover:bg-gray-50">
+                            <td class="p-3 border-b"><span class="px-2 py-1 text-xs rounded font-semibold ${t.estado === 'Ejecutado' ? 'bg-cyan-100 text-cyan-800' : 'bg-yellow-100 text-yellow-800'}">${t.estado}</span></td>
+                            <td class="p-3 border-b">${formatDateClean(t.fecha)}</td>
+                            <td class="p-3 border-b">${formatTimeClean(t.horaInicio)} - ${formatTimeClean(t.horaFin)} (${t.totalHoras} hrs)</td>
+                            <td class="p-3 border-b">${t.categoria}</td>
+                            <td class="p-3 border-b">${t.subcategoria}</td>
+                            <td class="p-3 border-b">${t.actividad}</td>
+                            <td class="p-3 border-b text-center"><button onclick="deleteTask(${t.rowIndex})" class="bg-red-50 hover:bg-red-100 text-red-600 p-2 rounded-lg"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></td>
+                        </tr>`;
                 });
-                el.appendChild(li);
+                container.innerHTML += `<div class="bg-white rounded-xl shadow-sm border overflow-hidden mb-4"><div class="bg-gray-100 px-6 py-3 border-b flex justify-between items-center"><h3 class="font-bold text-gray-700 text-sm">📅 ${weekNum}ª Semana del Mes</h3><span class="text-xs text-gray-500">${weeksMap[weekNum].length} registro(s)</span></div><div class="overflow-x-auto"><table class="w-full text-left border-collapse text-sm"><tbody class="divide-y divide-gray-200">${rowsHtml}</tbody></table></div></div>`;
+            });
+        }
+
+        function updateProgressView() {
+            const businessDaysTarget = countBusinessDaysUntilNow();
+            const currentMonthIndex = liveServerDate.getMonth(); const currentYearNum = liveServerDate.getFullYear();
+
+            const myTasks = userTasks.filter(t => {
+                if (t.nombre !== currentUser.nombre || t.categoria === "ALERTA_ADMIN") return false;
+                let parts = String(t.fecha).split('T')[0].split('-');
+                if (parts.length === 3 && parts[0].length === 4) {
+                    let taskDate = new Date(parts[0], parts[1] - 1, parts[2]);
+                    return taskDate.getMonth() === currentMonthIndex && taskDate.getFullYear() === currentYearNum;
+                }
+                return false;
+            });
+
+            const uniqueDatesWorked = [...new Set(myTasks.map(t => String(t.fecha).split('T')[0]))];
+            document.getElementById('stat-days').innerText = `${uniqueDatesWorked.length} / ${businessDaysTarget} hábiles`;
+            const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDatesWorked.length / businessDaysTarget) * 100)) : 0;
+            const statPercentageEl = document.getElementById('stat-percentage');
+            statPercentageEl.innerText = compliance + '%'; statPercentageEl.className = `text-3xl font-black mt-2 ${getComplianceColorClass(compliance)}`;
+
+            const weeklyHoursMap = {};
+            myTasks.forEach(t => { const w = getWeekOfMonth(t.fecha); if (!weeklyHoursMap[w]) weeklyHoursMap[w] = 0; weeklyHoursMap[w] += parseFloat(t.totalHoras); });
+            const weeklyContainer = document.getElementById('stat-weekly-hours'); weeklyContainer.innerHTML = '';
+            if (Object.keys(weeklyHoursMap).length === 0) { weeklyContainer.innerHTML = `<span class="text-gray-400 font-normal">Sin horas registradas en este mes</span>`; return; }
+            Object.keys(weeklyHoursMap).sort().forEach(w => {
+                const hrs = weeklyHoursMap[w];
+                let alertHtml = hrs > 42 ? `<div class="text-xs text-red-600 font-bold bg-red-50 p-1.5 rounded mt-1 border border-red-200">⚠️ Alerta: (${hrs.toFixed(1)} hrs)</div>` : '';
+                weeklyContainer.innerHTML += `<div class="mb-2"><span class="text-gray-700">Semana ${w}:</span> <span class="font-black">${hrs.toFixed(1)} hrs</span>${alertHtml}</div>`;
+            });
+        }
+
+        // Utilidades de formulario
+        function checkDateAndAutofill() {
+            autofillDateInfo();
+            if (festivosColombia2026.includes(document.getElementById('form-fecha').value)) {
+                alert("📅 La fecha seleccionada coincide con un DÍA FESTIVO. Se registrará automáticamente con 8.4 horas de novedad.");
+                document.getElementById('form-categoria').value = "Ausencias y Permisos Laborales"; updateSubcategories();
+                document.getElementById('form-subcategoria').value = "Ausencias y Permisos Laborales"; updateActivities();
+                document.getElementById('form-actividad').value = "Ausencias y Permisos Laborales"; lockForStandardHours(8.4);
+            } else unlockHours();
+        }
+        function autofillDateInfo() {
+            const dateVal = document.getElementById('form-fecha').value; if (!dateVal) return;
+            const dateObj = new Date(dateVal + 'T00:00:00');
+            document.getElementById('auto-mes').innerText = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][dateObj.getMonth()];
+            document.getElementById('auto-anio').innerText = dateObj.getFullYear();
+            document.getElementById('auto-dia').innerText = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"][dateObj.getDay() === 0 ? 6 : dateObj.getDay() - 1];
+        }
+        function handleCategoryChange() { updateSubcategories(); unlockHours(); }
+        function handleSubcategoryChange() {
+            updateActivities();
+            const ausencias = ["Ausencias y Permisos Laborales", "Permisos / calamidad", "Incapacidad", "Licencia", "Día de la familia", "Día de Cumpleaños", "Compensatorio", "Vacaciones"];
+            if (document.getElementById('form-categoria').value === "Ausencias y Permisos Laborales" || ausencias.includes(document.getElementById('form-subcategoria').value)) lockForStandardHours(8.4); else unlockHours();
+        }
+        function lockForStandardHours(hoursValue) {
+            document.getElementById('hours-container').innerHTML = `<div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center"><span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span><input type="hidden" id="form-horainicio" value="08:00"><input type="hidden" id="form-horafin" value="16:24"></div>`;
+        }
+        function unlockHours() {
+            if (document.getElementById('hours-container').querySelector('input[type="hidden"]')) {
+                document.getElementById('hours-container').innerHTML = `<div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Inicio</label><select id="form-horainicio" required onchange="filterEndHours()" class="w-full px-3 py-2 border rounded-lg text-sm bg-white"></select></div><div><label class="block text-xs font-semibold text-gray-700 mb-1">Hora Fin</label><select id="form-horafin" required class="w-full px-3 py-2 border rounded-lg text-sm bg-white"><option value="">Seleccione hora inicio primero...</option></select></div>`;
+                populateStartHours();
+            }
+        }
+        function updateSubcategories() {
+            const cat = document.getElementById('form-categoria').value; const subSelect = document.getElementById('form-subcategoria');
+            subSelect.innerHTML = '<option value="">Seleccione subcategoría...</option>'; document.getElementById('form-actividad').innerHTML = '<option value="">Seleccione subcategoría primero...</option>';
+            if (cat && dbListas[cat]) Object.keys(dbListas[cat]).forEach(sub => subSelect.innerHTML += `<option value="${sub}">${sub}</option>`);
+        }
+        function updateActivities() {
+            const cat = document.getElementById('form-categoria').value; const sub = document.getElementById('form-subcategoria').value; const actSelect = document.getElementById('form-actividad');
+            actSelect.innerHTML = '<option value="">Seleccione actividad...</option>';
+            if (cat && sub && dbListas[cat][sub]) dbListas[cat][sub].forEach(act => actSelect.innerHTML += `<option value="${act}">${act}</option>`);
+        }
+
+        async function readApiResponse(response) {
+            const rawText = await response.text();
+            try { return JSON.parse(rawText); } catch (_) { throw new Error(`HTTP ${response.status}`); }
+        }
+
+        async function saveActivity(event) {
+            event.preventDefault();
+            let totalHoras = 0; let horaInicio = ""; let horaFin = "";
+            const hiddenStart = document.getElementById('form-horainicio');
+            if (hiddenStart && hiddenStart.type === "hidden") { totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24"; } 
+            else {
+                horaInicio = document.getElementById('form-horainicio').value; horaFin = document.getElementById('form-horafin').value;
+                const [h1, m1] = horaInicio.split(':').map(Number); const [h2, m2] = horaFin.split(':').map(Number);
+                totalHoras = ((h2 * 60 + m2) - (h1 * 60 + m1)) / 60;
+                if (totalHoras <= 0) { alert("La hora final debe ser mayor a la hora de inicio."); return; }
+            }
+            const payload = new URLSearchParams({
+                action: "saveTask", estado: document.getElementById('form-estado').value, codRef: document.getElementById('form-estado').value,
+                fecha: document.getElementById('form-fecha').value, mes: document.getElementById('auto-mes').innerText, anio: document.getElementById('auto-anio').innerText, dia: document.getElementById('auto-dia').innerText,
+                nombre: currentUser.nombre, rol: currentUser.rol, region: currentUser.region, ciudad: currentUser.ciudad, canal: currentUser.canal,
+                categoria: document.getElementById('form-categoria').value, subcategoria: document.getElementById('form-subcategoria').value, actividad: document.getElementById('form-actividad').value,
+                horaInicio: horaInicio, horaFin: horaFin, totalHoras: totalHoras.toFixed(1), observaciones: document.getElementById('form-observaciones').value
+            });
+            showLoading("Guardando...");
+            try {
+                const res = await fetch(API_URL, { method: "POST", body: payload }); const result = await readApiResponse(res); hideLoading();
+                if (result.status === "success") { alert("¡Guardado exitoso!"); await loadCloudDatabase(); resetFormToNew(); renderWeeksTasks(); updateProgressView(); switchTab('tasks'); } else { alert(`Error: ${result.message}`); }
+            } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
+        }
+
+        async function deleteTask(rowIndex) {
+            if (!confirm("¿Eliminar registro?")) return;
+            showLoading("Eliminando...");
+            try {
+                const res = await fetch(API_URL, { method: "POST", body: new URLSearchParams({ action: "deleteTask", rowIndex: rowIndex }) });
+                const result = await readApiResponse(res); hideLoading();
+                if (result.status === "success") { alert("¡Eliminado!"); await loadCloudDatabase(); renderWeeksTasks(); updateProgressView(); } else { alert(`Error: ${result.message}`); }
+            } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
+        }
+
+        function resetFormToNew() { document.getElementById('edit-index').value = -1; document.getElementById('activity-form').reset(); document.getElementById('form-nombre').value = currentUser.nombre; unlockHours(); }
+        function getWeekOfMonth(dateString) { return Math.ceil(new Date(String(dateString).split('T')[0] + 'T00:00:00').getDate() / 7); }
+        function countBusinessDaysUntilNow() {
+            const year = liveServerDate.getFullYear(); const month = liveServerDate.getMonth(); const todayDate = liveServerDate.getDate(); let count = 0;
+            for (let d = 1; d <= todayDate; d++) { const dayOfWeek = new Date(year, month, d).getDay(); if (dayOfWeek >= 1 && dayOfWeek <= 5) count++; }
+            return count;
+        }
+        function renderTopListWithExecutantes(property, elementId, taskArray) {
+            const counts = {}; const itemExecutantes = {};
+            taskArray.forEach(t => { if (t[property]) { counts[t[property]] = (counts[t[property]] || 0) + 1; if (!itemExecutantes[t[property]]) itemExecutantes[t[property]] = new Set(); if (t.nombre) itemExecutantes[t[property]].add(t.nombre); }});
+            const sorted = Object.keys(counts).sort((a, b) => counts[b] - counts[a]).slice(0, 5);
+            const el = document.getElementById(elementId); el.innerHTML = '';
+            if (sorted.length === 0) { el.innerHTML = `<li class="text-slate-500">Sin registros</li>`; return; }
+            sorted.forEach((item, index) => {
+                const li = document.createElement('li'); li.className = "relative group border-b border-slate-700/50 pb-2 cursor-pointer select-none";
+                li.innerHTML = `<div class="flex justify-between items-center"><span class="text-slate-200">${index + 1}. ${item}</span><strong class="overlap-theme-text font-mono">${counts[item]} usos</strong></div><div class="absolute left-0 bottom-full mb-1 hidden group-hover:block z-20 w-72 p-2.5 bg-slate-950 text-slate-200 text-[10px] rounded-lg shadow-2xl border border-cyan-500/40 pointer-events-none leading-relaxed"><p class="font-semibold text-cyan-400 mb-1">👥 Ejecutivos:</p><p class="text-slate-300 font-normal">${Array.from(itemExecutantes[item] || []).join(', ') || 'Ninguno'}</p></div>`;
+                li.addEventListener('click', (e) => { e.stopPropagation(); const t = li.querySelector('div.absolute'); if (t) { t.classList.remove('hidden'); t.classList.add('block'); setTimeout(() => { t.classList.remove('block'); t.classList.add('hidden'); }, 8000); }}); el.appendChild(li);
             });
         }
     </script>

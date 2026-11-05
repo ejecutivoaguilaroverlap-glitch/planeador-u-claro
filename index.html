@@ -673,7 +673,7 @@
             let vistasActuales = parseInt(localStorage.getItem(alertIdStorage) || "0");
             
             // REGLA 2: Mostrar SOLO si tiene menos de 2 vistas
-            if (vistasActuales < 2) {
+            if (vistasActuales < 1) {
                 ejecutarAnimacionAlerta(ultimaAlerta.actividad);
                 localStorage.setItem(alertIdStorage, vistasActuales + 1);
             }

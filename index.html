@@ -641,6 +641,7 @@
                     
                     updateProgressView();
                     renderWeeksTasks();
+                    populateStartHours(); // Asegura la carga de horas al iniciar sesión como Entrenador
                     
                     // Esperamos 500ms para permitir renderizado antes de disparar la alerta
                     setTimeout(verificarAlertasParaEntrenador, 500);
@@ -661,7 +662,7 @@
             document.getElementById('login-form').reset();
         }
 
-        // Controladores de Pestañas para EE y Admin
+        // Controladores de Pestañas para EE y Admin (Actualizado para poblar horas al entrar a form)
         function switchTab(tab) {
             ['progress', 'tasks', 'form'].forEach(t => {
                 document.getElementById(`tab-${t}`).classList.add('hidden');
@@ -669,6 +670,11 @@
             });
             document.getElementById(`tab-${tab}`).classList.remove('hidden');
             document.getElementById(`nav-${tab}`).className = "py-3 text-sm font-semibold border-b-2 overlap-theme-border overlap-theme-text transition";
+            
+            // Si el usuario cambia a la pestaña del formulario, cargamos las horas de inicio
+            if (tab === 'form') {
+                populateStartHours();
+            }
         }
 
         function switchAdminTab(tab) {
@@ -1228,6 +1234,7 @@
             document.getElementById('activity-form').reset(); 
             document.getElementById('form-nombre').value = currentUser.nombre; 
             unlockHours(); 
+            populateStartHours(); 
         }
         
         function getWeekOfMonth(dateString) { 
@@ -1339,6 +1346,7 @@
                     
                     updateProgressView();
                     renderWeeksTasks();
+                    populateStartHours(); // Asegura la carga de horas al restaurar sesión
                     
                     // Se usa setTimeout para asegurar que el DOM esté listo antes de vibrar/dibujar el modal
                     setTimeout(verificarAlertasParaEntrenador, 500);
@@ -1349,8 +1357,9 @@
         // 1. Mostrar indicador apenas la página carga o se refresca (F5)
         showLoading("Iniciando sistema y conectando a la nube...");
         
-        // 2. Ejecutar carga inicial de BD y luego intentar restaurar sesión automáticamente
+        // 2. Ejecutar carga inicial de BD, popular las horas de inicio y luego intentar restaurar sesión automáticamente
         loadCloudDatabase().then(() => {
+            populateStartHours(); // Carga las horas por defecto al arrancar
             restaurarSesion();
             hideLoading(); // Quitar spinner sin importar si restauró sesión o si se quedó en el login
         });

@@ -50,6 +50,12 @@
 </head>
 <body class="min-h-screen flex flex-col">
 
+    <!-- Indicador Discreto Global de Conexión (Visible en Login, Admin y Entrenador) -->
+    <div id="global-connection-badge" title="Verificando estado de conexión..." class="fixed top-2.5 right-3 z-[90] flex items-center space-x-1.5 bg-white/95 backdrop-blur-xs border border-gray-200 shadow-sm px-2.5 py-1 rounded-full text-[11px] font-semibold text-gray-700 select-none transition-all duration-300">
+        <span id="global-connection-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse inline-block"></span>
+        <span id="global-connection-label" class="hidden sm:inline">Verificando...</span>
+    </div>
+
     <!-- ========================================================================= -->
     <!-- CAPA 1: MODALES Y ALERTAS VISUALES (Z-Index alto para sobreponerse)       -->
     <!-- ========================================================================= -->
@@ -143,7 +149,7 @@
     <div id="main-app" class="hidden flex-grow flex flex-col min-h-screen">
         
         <!-- Header: Logo, Título y Botón de Cerrar Sesión -->
-        <header class="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center z-10">
+        <header class="bg-white shadow-sm border-b pl-6 pr-28 sm:pr-36 py-4 flex justify-between items-center z-10">
             <div class="flex items-center space-x-3">
                 <div class="flex items-center space-x-2">
                     <span class="text-xl font-black text-gray-800">Claro</span>
@@ -176,6 +182,22 @@
                             <p class="text-xs text-slate-400">Monitoreo exclusivo, ranking y alertas para el equipo (Mes en Curso).</p>
                         </div>
                         <span class="mt-2 md:mt-0 text-[10px] bg-slate-800 text-cyan-400 border border-cyan-500/30 px-3 py-1 rounded-full font-mono uppercase tracking-wider">Administrador</span>
+                    </div>
+
+                    <!-- Indicador de Días Hábiles por Diligenciar y Festivos del Mes en Curso -->
+                    <div id="admin-days-info" class="mb-6 bg-slate-800/70 border border-slate-700 rounded-lg p-4 text-xs text-slate-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <span class="text-cyan-400 font-semibold uppercase block mb-1">📅 Corte de Días por Diligenciar</span>
+                            <span id="admin-dias-corte" class="text-sm font-bold text-white">-</span>
+                        </div>
+                        <div>
+                            <span class="text-cyan-400 font-semibold uppercase block mb-1">📌 Días Hábiles Exigidos (Sin Festivos)</span>
+                            <span id="admin-dias-habiles" class="text-sm font-bold text-emerald-400">-</span>
+                        </div>
+                        <div>
+                            <span class="text-cyan-400 font-semibold uppercase block mb-1">🎉 Festivos del Mes (Excluidos)</span>
+                            <span id="admin-festivos-mes" class="text-sm font-bold text-amber-300">-</span>
+                        </div>
                     </div>
 
                     <!-- Contenedor para alerta operativa global (ej. Exceso de juntas) -->
@@ -463,6 +485,78 @@
             return str;
         }
 
+        // ==============================================================
+        // MONITOR GLOBAL DE CONEXIÓN (Internet + API Nube U-Claro)
+        // ==============================================================
+        let isSystemOnline = navigator.onLine;
+        let lastCloudSyncOk = false;
+
+        function updateConnectionUI(isConnected, detailText = "") {
+            isSystemOnline = isConnected;
+            const dot = document.getElementById('global-connection-dot');
+            const label = document.getElementById('global-connection-label');
+            const badge = document.getElementById('global-connection-badge');
+            if (!dot || !label || !badge) return;
+
+            if (isConnected) {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.8)] inline-block";
+                label.innerText = "En línea";
+                label.className = "hidden sm:inline text-emerald-700";
+                badge.className = "fixed top-2.5 right-3 z-[90] flex items-center space-x-1.5 bg-white/95 backdrop-blur-xs border border-emerald-200 shadow-sm px-2.5 py-1 rounded-full text-[11px] font-semibold select-none transition-all duration-300";
+                badge.title = detailText || "Conectado: Internet y Nube U-Claro operativos";
+            } else {
+                dot.className = "w-2.5 h-2.5 rounded-full bg-red-600 shadow-[0_0_8px_rgba(220,38,38,0.9)] inline-block";
+                label.innerText = "Sin conexión";
+                label.className = "hidden sm:inline text-red-700 font-bold";
+                badge.className = "fixed top-2.5 right-3 z-[90] flex items-center space-x-1.5 bg-red-50/95 backdrop-blur-xs border border-red-300 shadow-sm px-2.5 py-1 rounded-full text-[11px] font-semibold select-none transition-all duration-300";
+                badge.title = detailText || "Sin conexión: Verifica tu internet o el enlace con la nube antes de guardar";
+            }
+        }
+
+        async function verifyFullPlatformConnectivity() {
+            if (!navigator.onLine) {
+                lastCloudSyncOk = false;
+                updateConnectionUI(false, "Sin conexión a Internet en el dispositivo.");
+                return false;
+            }
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000);
+                const res = await fetch(`${API_URL}?action=getDatabase`, {
+                    method: "GET",
+                    cache: "no-store",
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                if (data && data.status === "success") {
+                    lastCloudSyncOk = true;
+                    updateConnectionUI(true, `Conectado a Nube U-Claro (${new Date().toLocaleTimeString()})`);
+                    return true;
+                }
+                throw new Error("Respuesta inválida del servidor");
+            } catch (err) {
+                lastCloudSyncOk = false;
+                updateConnectionUI(false, "Sin enlace con la Nube U-Claro. No se guardarán registros hasta restablecer.");
+                return false;
+            }
+        }
+
+        window.addEventListener('online', () => {
+            verifyFullPlatformConnectivity();
+        });
+
+        window.addEventListener('offline', () => {
+            lastCloudSyncOk = false;
+            updateConnectionUI(false, "Conexión a Internet perdida.");
+        });
+
+        // Verificación periódica discreta cada 10 segundos en segundo plano
+        setInterval(() => {
+            verifyFullPlatformConnectivity();
+        }, 10000);
+
         // ==========================================
         // CONEXIÓN AL BACKEND (Google Apps Script)
         // ==========================================
@@ -531,9 +625,13 @@
                         }
                     }
                 }
+                lastCloudSyncOk = true;
+                updateConnectionUI(true, `Conectado a Nube U-Claro (${new Date().toLocaleTimeString()})`);
                 return true;
             } catch (err) { 
                 console.error(err); 
+                lastCloudSyncOk = false;
+                updateConnectionUI(false, "Error de conexión con la Nube U-Claro.");
                 return false; 
             }
         }
@@ -679,6 +777,7 @@
             // Si el usuario cambia a la pestaña del formulario, cargamos las horas de inicio
             if (tab === 'form') {
                 populateStartHours();
+                applyMaxDateRestriction();
             }
         }
 
@@ -925,7 +1024,25 @@
         }
 
         function renderAdminDashboard() {
-            const businessDaysTarget = countBusinessDaysUntilNow();
+            const summary = getBusinessDaysSummaryUntilNow();
+            const businessDaysTarget = summary.count;
+            const nombresMes = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const mesNombre = nombresMes[summary.month] || "";
+
+            const corteEl = document.getElementById('admin-dias-corte');
+            const habilesEl = document.getElementById('admin-dias-habiles');
+            const festivosEl = document.getElementById('admin-festivos-mes');
+
+            if (corteEl) {
+                corteEl.innerText = `Día 1 al ${summary.todayDate} de ${mesNombre} ${summary.year}`;
+            }
+            if (habilesEl) {
+                const diasTexto = summary.diasHabiles.length > 0 ? summary.diasHabiles.join(', ') : 'Ninguno';
+                habilesEl.innerText = `${businessDaysTarget} días (Días: ${diasTexto})`;
+            }
+            if (festivosEl) {
+                festivosEl.innerText = summary.festivosEnMes.length > 0 ? summary.festivosEnMes.join(', ') : 'Sin festivos en el mes';
+            }
             const rankingBody = document.getElementById('admin-ranking-body'); 
             rankingBody.innerHTML = '';
             
@@ -955,17 +1072,19 @@
                 const uniqueDays = [...new Set(pTasks.map(t => String(t.fecha).split('T')[0]))].length;
                 const compliance = businessDaysTarget > 0 ? Math.min(100, Math.round((uniqueDays / businessDaysTarget) * 100)) : 0;
                 
-                const dailyHoursMap = {};
+                // Agrupación SEMANAL (no diaria) para validar la alerta de > 42 horas semanales
+                const weeklyHoursMap = {};
                 pTasks.forEach(t => {
-                    const cleanD = formatDateClean(t.fecha);
-                    if (!dailyHoursMap[cleanD]) dailyHoursMap[cleanD] = 0;
-                    dailyHoursMap[cleanD] += parseFloat(t.totalHoras);
+                    const weekNum = getWeekOfMonth(t.fecha);
+                    const hrs = parseFloat(t.totalHoras) || 0;
+                    if (!weeklyHoursMap[weekNum]) weeklyHoursMap[weekNum] = 0;
+                    weeklyHoursMap[weekNum] += hrs;
                     if (t.categoria === "Administrativo" && t.subcategoria === "Reuniones") totalAdminReunionesCount++;
                 });
                 
-                // Si la suma diaria supera 42h, se emite bandera roja local
+                // Si la suma en alguna semana supera 42h, se emite bandera roja de sobrecarga semanal
                 let hasOverload = false;
-                Object.keys(dailyHoursMap).forEach(date => { if (dailyHoursMap[date] > 42) hasOverload = true; });
+                Object.keys(weeklyHoursMap).forEach(weekNum => { if (weeklyHoursMap[weekNum] > 42) hasOverload = true; });
                 
                 teamStats.push({ nombre: p.nombre, uniqueDays, compliance, hasOverload });
             });
@@ -1034,6 +1153,16 @@
                 container.innerHTML = `<div class="bg-white p-6 rounded-xl border text-center text-gray-400">No hay tareas registradas en este mes.</div>`; 
                 return; 
             }
+
+            // Ordenar tareas cronológicamente por fecha y luego por hora de inicio
+            myTasks.sort((a, b) => {
+                const fechaA = String(a.fecha).split('T')[0];
+                const fechaB = String(b.fecha).split('T')[0];
+                if (fechaA !== fechaB) return fechaA.localeCompare(fechaB);
+                const horaA = formatTimeClean(a.horaInicio);
+                const horaB = formatTimeClean(b.horaInicio);
+                return horaA.localeCompare(horaB);
+            });
 
             const weeksMap = {};
             myTasks.forEach((t) => { 
@@ -1107,7 +1236,60 @@
         // Detecta Festivos o Ausencias y bloquea a 8.4 horas
         // ==============================================================
         
+                // Retorna la fecha mínima permitida (primer día del mes en curso) en formato YYYY-MM-DD
+        function getMinAllowedDateIso() {
+            const refDate = liveServerDate instanceof Date && !isNaN(liveServerDate.getTime()) ? liveServerDate : new Date();
+            const y = refDate.getFullYear();
+            const m = String(refDate.getMonth() + 1).padStart(2, '0');
+            return `${y}-${m}-01`;
+        }
+
+        // Retorna la fecha máxima permitida (hoy) en formato YYYY-MM-DD para bloquear fechas futuras
+        function getMaxAllowedDateIso() {
+            const refDate = liveServerDate instanceof Date && !isNaN(liveServerDate.getTime()) ? liveServerDate : new Date();
+            const y = refDate.getFullYear();
+            const m = String(refDate.getMonth() + 1).padStart(2, '0');
+            const d = String(refDate.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function isDateWithinCurrentMonthAndUpToToday(isoDateStr) {
+            if (!isoDateStr) return false;
+            const minIso = getMinAllowedDateIso();
+            const maxIso = getMaxAllowedDateIso();
+            return isoDateStr >= minIso && isoDateStr <= maxIso;
+        }
+
+        function applyMaxDateRestriction() {
+            const fechaInput = document.getElementById('form-fecha');
+            if (fechaInput) {
+                const minIso = getMinAllowedDateIso();
+                const maxIso = getMaxAllowedDateIso();
+                fechaInput.setAttribute('min', minIso);
+                fechaInput.setAttribute('max', maxIso);
+                if (fechaInput.value && !isDateWithinCurrentMonthAndUpToToday(fechaInput.value)) {
+                    fechaInput.value = '';
+                    document.getElementById('auto-mes').innerText = '-';
+                    document.getElementById('auto-anio').innerText = '-';
+                    document.getElementById('auto-dia').innerText = '-';
+                }
+            }
+        }
+
         function checkDateAndAutofill() {
+            applyMaxDateRestriction();
+            const fechaInput = document.getElementById('form-fecha');
+            const minIso = getMinAllowedDateIso();
+            const maxIso = getMaxAllowedDateIso();
+            if (fechaInput && fechaInput.value && !isDateWithinCurrentMonthAndUpToToday(fechaInput.value)) {
+                alert(`⛔ Solo se permiten fechas del mes en curso hasta hoy (entre ${formatDateClean(minIso)} y ${formatDateClean(maxIso)}).`);
+                fechaInput.value = '';
+                document.getElementById('auto-mes').innerText = '-';
+                document.getElementById('auto-anio').innerText = '-';
+                document.getElementById('auto-dia').innerText = '-';
+                unlockHours();
+                return;
+            }
             autofillDateInfo();
             if (festivosColombia2026.includes(document.getElementById('form-fecha').value)) {
                 alert("📅 La fecha seleccionada coincide con un DÍA FESTIVO. Se registrará automáticamente con 8.4 horas de novedad.");
@@ -1180,6 +1362,18 @@
         // Guarda las actividades (Trainer) en la base de datos central
         async function saveActivity(event) {
             event.preventDefault();
+            if (!navigator.onLine) {
+                updateConnectionUI(false, "Sin conexión a Internet.");
+                alert("🔴 Sin conexión a Internet. Conéctate a una red (el punto superior debe estar en verde) antes de guardar para no perder tu registro.");
+                return;
+            }
+            const fechaVal = document.getElementById('form-fecha').value;
+            const minIso = getMinAllowedDateIso();
+            const maxIso = getMaxAllowedDateIso();
+            if (!fechaVal || !isDateWithinCurrentMonthAndUpToToday(fechaVal)) {
+                alert(`⛔ Solo puedes registrar actividades dentro del mes en curso hasta hoy (${formatDateClean(minIso)} a ${formatDateClean(maxIso)}).`);
+                return;
+            }
             let totalHoras = 0; let horaInicio = ""; let horaFin = "";
             const hiddenStart = document.getElementById('form-horainicio');
             
@@ -1216,10 +1410,19 @@
                     updateProgressView(); 
                     switchTab('tasks'); 
                 } else { alert(`Error: ${result.message}`); }
-            } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
+            } catch (e) { 
+                hideLoading(); 
+                updateConnectionUI(false, "Fallo de red al intentar guardar.");
+                alert(`🔴 No se pudo guardar por fallo de conexión (${e.message}). Tus datos siguen en el formulario; verifica que el punto superior vuelva a verde e intenta de nuevo.`); 
+            }
         }
 
         async function deleteTask(rowIndex) {
+            if (!navigator.onLine) {
+                updateConnectionUI(false, "Sin conexión a Internet.");
+                alert("🔴 Sin conexión a Internet. Verifica que el indicador superior esté en verde antes de eliminar.");
+                return;
+            }
             if (!confirm("¿Eliminar registro?")) return;
             showLoading("Eliminando...");
             try {
@@ -1231,7 +1434,11 @@
                     renderWeeksTasks(); 
                     updateProgressView(); 
                 } else { alert(`Error: ${result.message}`); }
-            } catch (e) { hideLoading(); alert(`Error: ${e.message}`); }
+            } catch (e) { 
+                hideLoading(); 
+                updateConnectionUI(false, "Fallo de red al intentar guardar.");
+                alert(`🔴 No se pudo guardar por fallo de conexión (${e.message}). Tus datos siguen en el formulario; verifica que el punto superior vuelva a verde e intenta de nuevo.`); 
+            }
         }
 
         function resetFormToNew() { 
@@ -1246,17 +1453,50 @@
             return Math.ceil(new Date(String(dateString).split('T')[0] + 'T00:00:00').getDate() / 7); 
         }
         
-        // Calcula días hábiles asumiendo L-V. (S/D ignorados en métrica estándar).
-        function countBusinessDaysUntilNow() {
-            const year = liveServerDate.getFullYear(); 
-            const month = liveServerDate.getMonth(); 
-            const todayDate = liveServerDate.getDate(); 
-            let count = 0;
-            for (let d = 1; d <= todayDate; d++) { 
-                const dayOfWeek = new Date(year, month, d).getDay(); 
-                if (dayOfWeek >= 1 && dayOfWeek <= 5) count++; 
+        // Obtiene los días hábiles (L-V) transcurridos hasta hoy excluyendo festivos de Colombia 2026
+        function getBusinessDaysSummaryUntilNow() {
+            const year = liveServerDate.getFullYear();
+            const month = liveServerDate.getMonth();
+            const todayDate = liveServerDate.getDate();
+            const diasHabiles = [];
+            const festivosEnMes = [];
+
+            // Recopilar festivos del mes actual (sin importar si ya pasaron o son del mes)
+            festivosColombia2026.forEach(fStr => {
+                const parts = String(fStr).split('-');
+                if (parts.length === 3) {
+                    const fYear = parseInt(parts[0], 10);
+                    const fMonth = parseInt(parts[1], 10) - 1;
+                    const fDay = parseInt(parts[2], 10);
+                    if (fYear === year && fMonth === month) {
+                        festivosEnMes.push(`${String(fDay).padStart(2, '0')}/${String(fMonth + 1).padStart(2, '0')}`);
+                    }
+                }
+            });
+
+            for (let d = 1; d <= todayDate; d++) {
+                const dateObj = new Date(year, month, d);
+                const dayOfWeek = dateObj.getDay();
+                const isoStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const esFestivo = festivosColombia2026.includes(isoStr);
+                if (dayOfWeek >= 1 && dayOfWeek <= 5 && !esFestivo) {
+                    diasHabiles.push(d);
+                }
             }
-            return count;
+
+            return {
+                count: diasHabiles.length,
+                diasHabiles,
+                festivosEnMes,
+                year,
+                month,
+                todayDate
+            };
+        }
+
+        // Calcula días hábiles asumiendo L-V y excluyendo festivos
+        function countBusinessDaysUntilNow() {
+            return getBusinessDaysSummaryUntilNow().count;
         }
         
         // Extrae Top 5 y agrupa las personas involucradas usando un Set iterador
@@ -1365,6 +1605,7 @@
         // 2. Ejecutar carga inicial de BD, popular las horas de inicio y luego intentar restaurar sesión automáticamente
         loadCloudDatabase().then(() => {
             populateStartHours(); // Carga las horas por defecto al arrancar
+            applyMaxDateRestriction(); // Bloquea fechas futuras en el selector de fecha
             restaurarSesion();
             hideLoading(); // Quitar spinner sin importar si restauró sesión o si se quedó en el login
         });

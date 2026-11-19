@@ -445,13 +445,18 @@
             return cleanStr;
         }
 
-        // Limpia la hora evitando segundos o zonas horarias indeseadas
+        // Limpia la hora evitando desfases de zona horaria ISO (1899-12-30T...) y normaliza a HH:MM
         function formatTimeClean(timeStr) {
             if (!timeStr) return "";
-            let str = String(timeStr);
+            let str = String(timeStr).trim();
             if (str.includes('T')) {
+                const d = new Date(str);
+                if (!isNaN(d.getTime())) {
+                    // Ajustar a hora local de Colombia (UTC-5) para evitar el desfase histórico de LMT (-04:56) en Google Sheets
+                    return d.toLocaleTimeString('en-GB', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit', hour12: false });
+                }
                 let timePart = str.split('T')[1];
-                if (timePart) { let hm = timePart.split(':'); if (hm.length >= 2) return `${hm[0]}:${hm[1]}`; }
+                if (timePart) { let hm = timePart.split(':'); if (hm.length >= 2) return `${hm[0].padStart(2, '0')}:${hm[1].padStart(2, '0')}`; }
             }
             let parts = str.split(':');
             if (parts.length >= 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`;
@@ -1135,7 +1140,7 @@
         
         // Inserta inputs ocultos forzando las 8.4 hrs cuando hay novedad (Ej. festivos)
         function lockForStandardHours(hoursValue) {
-            document.getElementById('hours-container').innerHTML = `<div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center"><span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span><input type="hidden" id="form-horainicio" value="08:00"><input type="hidden" id="form-horafin" value="16:24"></div>`;
+            document.getElementById('hours-container').innerHTML = `<div class="col-span-2 bg-cyan-50 p-3 rounded-lg border border-cyan-200 text-xs text-cyan-900 flex justify-between items-center"><span>⚡ Novedad detectada: Se asignan automáticamente <strong>${hoursValue} horas</strong> estándar para la jornada.</span><input type="hidden" id="form-horainicio" value="08:00"><input type="hidden" id="form-horafin" value="16:30"></div>`;
         }
         
         // Restaura los selectores manuales de Hora Inicio/Fin
@@ -1180,7 +1185,7 @@
             
             // Si el bloque está "locked", asignamos 8.4 (Festivos)
             if (hiddenStart && hiddenStart.type === "hidden") { 
-                totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:24"; 
+                totalHoras = 8.4; horaInicio = "08:00"; horaFin = "16:30"; 
             } else {
                 horaInicio = document.getElementById('form-horainicio').value; 
                 horaFin = document.getElementById('form-horafin').value;
